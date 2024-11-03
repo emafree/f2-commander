@@ -115,7 +115,7 @@ def list_dir(
         up.name = ".."
         entries.append(up)
 
-    for child in fs.ls(path.as_posix()):
+    for child in fs.ls(path.as_posix(), detail=False):
         entry = DirEntry.from_path(fs, Path(child))
         if glob_expression and not fnmatch.fnmatch(entry.name, glob_expression):
             continue
@@ -144,7 +144,7 @@ def breadth_first_walk(path: Path, include_hidden: bool = True) -> Iterator[Path
     while dirs_to_walk:
         next_dirs_to_walk = []
         for d in dirs_to_walk:
-            for p in fs.ls(d.as_posix()):
+            for p in fs.ls(d.as_posix(), detail=False):
                 info = fs.info(path.as_posix())
                 if _is_hidden(info) and not include_hidden:
                     continue

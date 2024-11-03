@@ -355,6 +355,7 @@ class FileList(Static):
         )
         self._update_table(ls)
         # if still in the same dir, try to locate the previous cursor position
+        # TODO fsspec: will this work here? (parent == path)
         if old_cursor_path.parent == self.path:
             try:
                 idx = self.table.get_row_index(old_cursor_path.name)
@@ -374,6 +375,7 @@ class FileList(Static):
         self.glob = None
         self.update_listing()
         # if navigated "up", select source dir in the new list:
+        # TODO fsspec: will this work here? (parent == path)
         if new_path == old_path.parent:
             try:
                 idx = self.table.get_row_index(old_path.name)
@@ -434,13 +436,14 @@ class FileList(Static):
     def on_data_table_row_selected(self, event: DataTable.RowSelected):
         entry_name: str = event.row_key.value  # type: ignore
         selected_path = (self.path / entry_name).resolve()
-        if selected_path.is_dir():
+        if self.fs.isdir(selected_path):
             self.path = selected_path
 
     def action_open(self):
         # "open" is handled separately from "table.row_selected" to distinguish
         # between "enter" and mouse click (avoid navigation and running
         # apps on mouse clickd)
+        # TODO fsspec: or use fs.isdir()?
         entry = DirEntry.from_path(self.fs, self.cursor_path)
         if entry.is_dir:
             pass  # already handled by on_data_table_row_selected
@@ -483,6 +486,7 @@ class FileList(Static):
 
         # then, calculate and show the size (can be slow):
         # TODO fsspec: use fs.info()
+        # TODO fsspec: cannot use Path.rglob() here
         size = sum(f.stat().st_size for f in self.cursor_path.rglob("*") if f.is_file())
         size_text = Text(naturalsize(size), style=style, justify="right")
         self.table.update_cell(self.cursor_path.name, "size", size_text)

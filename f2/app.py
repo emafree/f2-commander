@@ -11,6 +11,7 @@ from functools import partial
 from importlib.metadata import version
 from pathlib import Path
 
+from fsspec.core import url_to_fs
 from send2trash import send2trash
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -390,12 +391,16 @@ class F2Commander(App):
 
         self.app.push_screen(GoToBookmarkDialog(), on_select)
 
-    # TODO fsspec: support remote filesystems
+    # TODO fsspec: "go to path" works for simpe urls only -> need "Connect to" feature
+    # TODO fsspec: automatically use zip:// and similar when "enter"ing archives
+
     def action_go_to_path(self):
         def on_enter(result: str | None):
             if result is not None:
-                path = Path(result)
-                if path.is_dir():
+                fs, path = url_to_fs(result)
+                path = Path(path) if path != "" else Path("/")
+                if fs.isdir(path):
+                    self.active_filelist.fs = fs
                     self.active_filelist.path = path
                 else:
                     self.push_screen(
