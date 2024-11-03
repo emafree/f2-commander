@@ -18,6 +18,7 @@ from textual.widgets.option_list import Option
 from ..config import config
 
 
+# TODO fsspec: support remote bookmarks, or explicitly only allow local ones
 class GoToBookmarkDialog(ModalScreen):
     BINDINGS = [
         Binding("escape", "dismiss", show=False),

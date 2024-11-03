@@ -5,7 +5,6 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import functools
-import os
 import subprocess
 import time
 from dataclasses import dataclass
@@ -124,6 +123,7 @@ class FileList(Static):
     SCROLLBAR_SIZE = 2
     TIME_FORMAT = "%b %d %H:%M"
 
+    # TODO fsspec: how to also convey in which FS is the path located?
     class Selected(Message):
         def __init__(self, path: Path, file_list: "FileList"):
             self.path = path
@@ -141,10 +141,10 @@ class FileList(Static):
     show_hidden = reactive(False)
     dirs_first = reactive(False)
     order_case_sensitive = reactive(False)
-    cursor_path = reactive(Path.cwd())
+    cursor_path = reactive(Path.cwd())  # TODO fsspec: external uses in app.py
     active = reactive(False)
     glob = reactive(None)
-    selection: set[str] = set()
+    selection: set[str] = set()  # TODO fsspec: how to convey in which FS this is?
 
     def compose(self) -> ComposeResult:
         self.table: DataTable = DataTable(cursor_type="row")
@@ -363,7 +363,7 @@ class FileList(Static):
                 pass
         # update list border with some information about the directory:
         total_size_str = naturalsize(ls.total_size)
-        self.parent.border_title = str(self.path)
+        self.parent.border_title = self.path.as_posix()
         subtitle = f"{total_size_str} in {ls.file_count} files | {ls.dir_count} dirs"
         if self.glob is not None:
             subtitle = f"[red]{self.glob}[/red] | {subtitle}"
@@ -441,31 +441,35 @@ class FileList(Static):
         # "open" is handled separately from "table.row_selected" to distinguish
         # between "enter" and mouse click (avoid navigation and running
         # apps on mouse clickd)
-        if self.cursor_path.is_dir():
+        entry = DirEntry.from_path(self.fs, self.cursor_path)
+        if entry.is_dir:
             pass  # already handled by on_data_table_row_selected
-        elif self.cursor_path.is_file() and os.access(self.cursor_path, os.X_OK):
+        elif entry.is_file and entry.is_executable:
             # TODO: ask to confirm to run, let chose mode (on a side or in a shell)
             pass
         else:
+            # TODO fsspec: download remote files
             open_cmd = native_open()
             if open_cmd is not None:
                 with self.app.suspend():
-                    subprocess.run(open_cmd + [str(self.cursor_path)])
+                    subprocess.run(open_cmd + [self.cursor_path.as_posix()])
 
     def action_open_in_os_file_manager(self):
+        # TODO fsspec: this is only available for local files
         open_cmd = native_open()
         if open_cmd is not None:
             with self.app.suspend():
-                subprocess.run(open_cmd + [str(self.path)])
+                subprocess.run(open_cmd + [self.path.as_posix()])
 
     def action_navigate_to_config(self):
+        self.fs = filesystem("file")
         self.path = config_root()
 
     @work
     async def action_calc_dir_size(self):
         path = self.cursor_path  # hold on to the requsted path
         self.action_cursor_down()  # and move the cursor
-        if not path.is_dir():
+        if not path.is_dir():  # TODO fsspec: use DirEntry.is_dir or fs.isdir()
             return
 
         # FIXME: reuse self._row_style
@@ -478,6 +482,7 @@ class FileList(Static):
         self.table.update_cell(self.cursor_path.name, "size", placeholder)
 
         # then, calculate and show the size (can be slow):
+        # TODO fsspec: use fs.info()
         size = sum(f.stat().st_size for f in self.cursor_path.rglob("*") if f.is_file())
         size_text = Text(naturalsize(size), style=style, justify="right")
         self.table.update_cell(self.cursor_path.name, "size", size_text)

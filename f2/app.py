@@ -207,6 +207,7 @@ class F2Commander(App):
             self.panels_container.move_child(self.panel_left, before=self.panel_right)
 
     def action_same_location(self):
+        self.inactive_filelist.fs = self.active_filelist.fs
         self.inactive_filelist.path = self.active_filelist.path
 
     def action_change_left_panel(self):
@@ -243,6 +244,7 @@ class F2Commander(App):
     def on_file_selected(self, event: FileList.Selected):
         for c in self.query("Panel > *"):
             if hasattr(c, "on_other_panel_selected"):
+                # TODO fsspec: also in which FS?
                 c.on_other_panel_selected(event.path)
 
     def action_view(self):
@@ -251,7 +253,7 @@ class F2Commander(App):
             viewer_cmd = viewer(or_editor=True)
             if viewer_cmd is not None:
                 with self.app.suspend():
-                    completed_process = subprocess.run(viewer_cmd + [str(src)])
+                    completed_process = subprocess.run(viewer_cmd + [src.as_posix()])
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Viewer exited with an error ({exit_code})"
@@ -265,7 +267,7 @@ class F2Commander(App):
             editor_cmd = editor()
             if editor_cmd is not None:
                 with self.app.suspend():
-                    completed_process = subprocess.run(editor_cmd + [str(src)])
+                    completed_process = subprocess.run(editor_cmd + [src.as_posix()])
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Editor exited with an error ({exit_code})"
@@ -273,6 +275,7 @@ class F2Commander(App):
             else:
                 self.push_screen(StaticDialog.error("Error", "No editor found!"))
 
+    # TODO fsspec: use fs.copy, get, put
     def action_copy(self):
         sources = self.active_filelist.selected_paths()
         dst = self.inactive_filelist.path
@@ -295,10 +298,11 @@ class F2Commander(App):
             else f"Copy {len(sources)} selected entries to"
         )
         self.push_screen(
-            InputDialog(title=msg, value=str(dst), btn_ok="Copy"),
+            InputDialog(title=msg, value=dst.as_posix(), btn_ok="Copy"),
             on_copy,
         )
 
+    # TODO fsspec: use fs.copy, get, put, delete
     def action_move(self):
         sources = self.active_filelist.selected_paths()
         dst = self.inactive_filelist.path
@@ -317,10 +321,11 @@ class F2Commander(App):
             else f"Move {len(sources)} selected entries to"
         )
         self.push_screen(
-            InputDialog(title=msg, value=str(dst), btn_ok="Move"),
+            InputDialog(title=msg, value=dst.as_posix(), btn_ok="Move"),
             on_move,
         )
 
+    # TODO fsspec: use fs.delete for remote, keep send2trash for local
     def action_delete(self):
         paths = self.active_filelist.selected_paths()
 
@@ -346,6 +351,7 @@ class F2Commander(App):
             on_delete,
         )
 
+    # TODO fsspec: use fs.mkdir
     def action_mkdir(self):
         def on_mkdir(result: str | None):
             if result is not None:
@@ -364,6 +370,7 @@ class F2Commander(App):
             with self.app.suspend():
                 completed_process = subprocess.run(
                     shell_cmd,
+                    # TODO fsspec: active path if local FS, otherwise CWD
                     cwd=self.active_filelist.path,
                 )
             self.active_filelist.update_listing()
@@ -375,6 +382,7 @@ class F2Commander(App):
         else:
             self.push_screen(StaticDialog.error("Error", "No shell found!"))
 
+    # TODO fsspec: support bookmarks in remote filesystems, or explicilty disallow
     def action_go_to_bookmark(self):
         def on_select(path: Path | None):
             if path is not None:
@@ -382,6 +390,7 @@ class F2Commander(App):
 
         self.app.push_screen(GoToBookmarkDialog(), on_select)
 
+    # TODO fsspec: support remote filesystems
     def action_go_to_path(self):
         def on_enter(result: str | None):
             if result is not None:
@@ -395,7 +404,7 @@ class F2Commander(App):
 
         self.push_screen(
             InputDialog(
-                "Jump to...", value=str(self.active_filelist.path), btn_ok="Go"
+                "Jump to...", value=self.active_filelist.path.as_posix(), btn_ok="Go"
             ),
             on_enter,
         )

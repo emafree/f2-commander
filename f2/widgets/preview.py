@@ -20,6 +20,7 @@ from ..fs import breadth_first_walk
 
 
 class Preview(Static):
+    # TODO fsspec: either also pass fs, or support the Preview for local files only
     preview_path = reactive(Path.cwd(), recompose=True)
 
     def compose(self) -> ComposeResult:

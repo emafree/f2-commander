@@ -138,7 +138,7 @@ def list_dir(
 
 def breadth_first_walk(path: Path, include_hidden: bool = True) -> Iterator[Path]:
 
-    fs = filesystem("file")  # TODO: support other filesystems
+    fs = filesystem("file")  # TODO fsspec: support other filesystems
 
     dirs_to_walk = [path]
     while dirs_to_walk:
