@@ -6,6 +6,7 @@
 
 import fnmatch
 import os
+import posixpath
 import stat
 from dataclasses import dataclass
 from datetime import datetime
@@ -35,11 +36,11 @@ class DirEntry:
     is_executable: bool
 
     @classmethod
-    def from_path(cls, fs: AbstractFileSystem, path: Path) -> "DirEntry":
-        info = fs.info(path.as_posix())
+    def from_path(cls, fs: AbstractFileSystem, path: str) -> "DirEntry":
+        info = fs.info(path)
         return DirEntry(
-            name=path.name,
-            size=info.get("size") or fs.size(path),
+            name=posixpath.basename(path),
+            size=info.get("size") or fs.size(path),  # FIXME fsspec: why of fs.size?
             mtime=_find_mtime(info),
             is_dir=info.get("type") == "directory",
             is_file=info.get("type") == "file",
@@ -59,15 +60,17 @@ def _find_mtime(info: dict[str, Any]):
 
 
 def _is_hidden(info: dict[str, Any]) -> bool:
-    path = Path(info["name"])
-    return path.name.startswith(".") or _is_local_file_hidden(path)
+    path = info["name"]
+    return posixpath.basename(path).startswith(".") or _is_local_file_hidden(path)
 
 
-def _is_local_file_hidden(path: Path) -> bool:
-    if not path.exists():
+def _is_local_file_hidden(path: str) -> bool:
+    p = Path(path)
+
+    if not p.exists():
         return False
 
-    statinfo = path.lstat()
+    statinfo = p.lstat()
     return _has_hidden_attribute(statinfo) or _has_hidden_flag(statinfo)
 
 
@@ -97,12 +100,12 @@ def _is_executable(statinfo: dict[str, Any]) -> bool:
 
 def list_dir(
     fs: AbstractFileSystem,
-    path: Path,
+    path: str,
     include_up_dir: bool = True,
     include_hidden: bool = True,
     glob_expression: str | None = None,
 ) -> DirList:
-    if not path.is_dir():
+    if not fs.isdir(path):
         raise ValueError(f"{path} is not a directory")
 
     total_size = 0
@@ -110,13 +113,15 @@ def list_dir(
     dir_count = 0
     entries = []
 
-    if include_up_dir and path.parent != path:
+    # FIXME fsspec: control if at root with another method
+    if include_up_dir and posixpath.dirname(path) != path:
         up = DirEntry.from_path(fs, path)
         up.name = ".."
         entries.append(up)
 
-    for child in fs.ls(path.as_posix(), detail=False):
-        entry = DirEntry.from_path(fs, Path(child))
+    # TODO fsspec: ls detail=True at once
+    for child in fs.ls(path, detail=False):
+        entry = DirEntry.from_path(fs, child)
         if glob_expression and not fnmatch.fnmatch(entry.name, glob_expression):
             continue
         if entry.is_hidden and not include_hidden:
@@ -136,7 +141,7 @@ def list_dir(
     )
 
 
-def breadth_first_walk(path: Path, include_hidden: bool = True) -> Iterator[Path]:
+def breadth_first_walk(path: str, include_hidden: bool = True) -> Iterator[str]:
 
     fs = filesystem("file")  # TODO fsspec: support other filesystems
 
@@ -144,11 +149,12 @@ def breadth_first_walk(path: Path, include_hidden: bool = True) -> Iterator[Path
     while dirs_to_walk:
         next_dirs_to_walk = []
         for d in dirs_to_walk:
-            for p in fs.ls(d.as_posix(), detail=False):
-                info = fs.info(path.as_posix())
+            # TODO fsspec: ls detail=True at once
+            for p in fs.ls(d, detail=False):
+                info = fs.info(path)
                 if _is_hidden(info) and not include_hidden:
                     continue
-                if p.is_dir():
+                if fs.isdir(p):
                     next_dirs_to_walk.append(p)
                 yield p
         dirs_to_walk = next_dirs_to_walk

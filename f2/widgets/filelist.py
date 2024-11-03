@@ -5,6 +5,7 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import functools
+import posixpath
 import subprocess
 import time
 from dataclasses import dataclass
@@ -125,7 +126,7 @@ class FileList(Static):
 
     # TODO fsspec: how to also convey in which FS is the path located?
     class Selected(Message):
-        def __init__(self, path: Path, file_list: "FileList"):
+        def __init__(self, path: str, file_list: "FileList"):
             self.path = path
             self.file_list = file_list
             super().__init__()
@@ -135,13 +136,13 @@ class FileList(Static):
             return self.file_list
 
     fs = filesystem("file")
-    path = reactive(Path.cwd())
+    path = reactive(Path.cwd().as_posix())
 
     sort_options = reactive(SortOptions("name"))
     show_hidden = reactive(False)
     dirs_first = reactive(False)
     order_case_sensitive = reactive(False)
-    cursor_path = reactive(Path.cwd())  # TODO fsspec: external uses in app.py
+    cursor_path = reactive(Path.cwd().as_posix())  # TODO fsspec: uses in app.py
     active = reactive(False)
     glob = reactive(None)
     selection: set[str] = set()  # TODO fsspec: how to convey in which FS this is?
@@ -159,10 +160,11 @@ class FileList(Static):
     def on_resize(self):
         self.update_listing()
 
-    def selected_paths(self) -> list[Path]:
+    def selected_paths(self) -> list[str]:
         if len(self.selection) > 0:
-            return list([self.path / name for name in self.selection])
-        elif self.cursor_path.name != "..":
+            return list([posixpath.join(self.path, name) for name in self.selection])
+        # FIXME fsspec: does ".." test work now with path being a raw string?
+        elif self.cursor_path != "..":
             return [self.cursor_path]
         else:
             return []  # FIXME: should be None
@@ -171,6 +173,7 @@ class FileList(Static):
         self.selection = set()
 
     def add_selection(self, name):
+        # FIXME fsspec: does ".." test work now with path being a raw string?
         if name == "..":
             return
         self.selection.add(name)
@@ -355,30 +358,30 @@ class FileList(Static):
         )
         self._update_table(ls)
         # if still in the same dir, try to locate the previous cursor position
-        # TODO fsspec: will this work here? (parent == path)
-        if old_cursor_path.parent == self.path:
+        if posixpath.dirname(old_cursor_path) == self.path:
             try:
-                idx = self.table.get_row_index(old_cursor_path.name)
+                idx = self.table.get_row_index(posixpath.basename(old_cursor_path))
                 self.table.cursor_coordinate = (idx, 0)  # type: ignore
             except RowDoesNotExist:
                 pass
         # update list border with some information about the directory:
         total_size_str = naturalsize(ls.total_size)
-        self.parent.border_title = self.path.as_posix()
+        self.parent.border_title = self.path
         subtitle = f"{total_size_str} in {ls.file_count} files | {ls.dir_count} dirs"
         if self.glob is not None:
             subtitle = f"[red]{self.glob}[/red] | {subtitle}"
         self.parent.border_subtitle = subtitle
 
-    def watch_path(self, old_path: Path, new_path: Path):
+    def watch_path(self, old_path: str, new_path: str):
         self.reset_selection()
         self.glob = None
         self.update_listing()
         # if navigated "up", select source dir in the new list:
+        # TODO fsspec: is this code block same exactly as above in update_listing?
         # TODO fsspec: will this work here? (parent == path)
-        if new_path == old_path.parent:
+        if new_path == posixpath.dirname(old_path):
             try:
-                idx = self.table.get_row_index(old_path.name)
+                idx = self.table.get_row_index(posixpath.basename(old_path))
                 self.table.cursor_coordinate = (idx, 0)  # type: ignore
             except RowDoesNotExist:
                 pass
@@ -435,7 +438,7 @@ class FileList(Static):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected):
         entry_name: str = event.row_key.value  # type: ignore
-        selected_path = (self.path / entry_name).resolve()
+        selected_path = posixpath.join(self.path, entry_name)
         if self.fs.isdir(selected_path):
             self.path = selected_path
 
@@ -455,41 +458,44 @@ class FileList(Static):
             open_cmd = native_open()
             if open_cmd is not None:
                 with self.app.suspend():
-                    subprocess.run(open_cmd + [self.cursor_path.as_posix()])
+                    subprocess.run(open_cmd + [self.cursor_path])
 
     def action_open_in_os_file_manager(self):
         # TODO fsspec: this is only available for local files
         open_cmd = native_open()
         if open_cmd is not None:
             with self.app.suspend():
-                subprocess.run(open_cmd + [self.path.as_posix()])
+                subprocess.run(open_cmd + [self.path])
 
     def action_navigate_to_config(self):
         self.fs = filesystem("file")
-        self.path = config_root()
+        self.path = config_root().as_posix()
 
     @work
     async def action_calc_dir_size(self):
         path = self.cursor_path  # hold on to the requsted path
         self.action_cursor_down()  # and move the cursor
-        if not path.is_dir():  # TODO fsspec: use DirEntry.is_dir or fs.isdir()
+        if not self.fs.isdir(path):
             return
+
+        cursor_name = posixpath.basename(self.cursor_path)
 
         # FIXME: reuse self._row_style
         style = "bold"
-        if self.cursor_path.name in self.selection:
+        if cursor_name in self.selection:
             style += " #fff04d italic"
 
         # show a placeholder and move the cursor at once:
         placeholder = Text("...", style=style, justify="right")
-        self.table.update_cell(self.cursor_path.name, "size", placeholder)
+        self.table.update_cell(cursor_name, "size", placeholder)
 
         # then, calculate and show the size (can be slow):
-        # TODO fsspec: use fs.info()
-        # TODO fsspec: cannot use Path.rglob() here
-        size = sum(f.stat().st_size for f in self.cursor_path.rglob("*") if f.is_file())
+        # TODO fsspec: cannot use Path.rglob() and f.stat() here
+        size = sum(
+            f.stat().st_size for f in Path(self.cursor_path).rglob("*") if f.is_file()
+        )
         size_text = Text(naturalsize(size), style=style, justify="right")
-        self.table.update_cell(self.cursor_path.name, "size", size_text)
+        self.table.update_cell(cursor_name, "size", size_text)
 
     def action_cursor_down(self):
         new_coord = (self.table.cursor_coordinate[0] + 1, 0)
@@ -500,7 +506,8 @@ class FileList(Static):
         self.table.cursor_coordinate = new_coord  # type: ignore
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
-        self.cursor_path = self.path / event.row_key.value  # type: ignore
+        name: str = event.row_key.value  # type: ignore
+        self.cursor_path = posixpath.join(self.path, name)
         self.post_message(self.Selected(path=self.cursor_path, file_list=self))
 
     def on_descendant_focus(self):
@@ -522,17 +529,17 @@ class FileList(Static):
         elif event.key in ("ctrl+b", "ctrl+u"):
             self.table.action_page_up()
         elif event.key == "backspace":
-            self.path = self.path.parent
+            self.path = posixpath.dirname(self.path)
         elif event.key == "R":
             self.update_listing()
         elif event.key == "enter":
             self.action_open()
         elif event.key in ("space", "J", "shift+down"):
-            self.toggle_selection(self.cursor_path.name)
+            self.toggle_selection(posixpath.basename(self.cursor_path))
             self.update_listing()
             self.action_cursor_down()
         elif event.key in ("K", "shift+up"):
-            self.toggle_selection(self.cursor_path.name)
+            self.toggle_selection(posixpath.basename(self.cursor_path))
             self.update_listing()
             self.action_cursor_up()
         elif event.key == "minus":

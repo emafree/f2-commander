@@ -250,11 +250,12 @@ class F2Commander(App):
 
     def action_view(self):
         src = self.active_filelist.cursor_path
-        if src.is_file():
+        # TODO fsspec: use fs.isfile, etc.
+        if os.path.isfile(src):
             viewer_cmd = viewer(or_editor=True)
             if viewer_cmd is not None:
                 with self.app.suspend():
-                    completed_process = subprocess.run(viewer_cmd + [src.as_posix()])
+                    completed_process = subprocess.run(viewer_cmd + [src])
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Viewer exited with an error ({exit_code})"
@@ -264,11 +265,12 @@ class F2Commander(App):
 
     def action_edit(self):
         src = self.active_filelist.cursor_path
-        if src.is_file():
+        # TODO fsspec: use fs.isfile, etc.
+        if os.path.isfile(src):
             editor_cmd = editor()
             if editor_cmd is not None:
                 with self.app.suspend():
-                    completed_process = subprocess.run(editor_cmd + [src.as_posix()])
+                    completed_process = subprocess.run(editor_cmd + [src])
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Editor exited with an error ({exit_code})"
@@ -284,8 +286,10 @@ class F2Commander(App):
         def on_copy(result: str | None):
             if result is not None:
                 for src in sources:
-                    if src.is_dir():
-                        shutil.copytree(src, os.path.join(result, src.name))
+                    if os.path.isdir(src):
+                        shutil.copytree(
+                            src, os.path.join(result, os.path.basename(src))
+                        )
                     else:
                         shutil.copy2(src, result)
                 # FIXME: broken abstraction, at least have a function to reset it?
@@ -294,12 +298,12 @@ class F2Commander(App):
                 self.inactive_filelist.update_listing()
 
         msg = (
-            f"Copy {sources[0].name} to"
+            f"Copy {os.path.basename(sources[0])} to"
             if len(sources) == 1
             else f"Copy {len(sources)} selected entries to"
         )
         self.push_screen(
-            InputDialog(title=msg, value=dst.as_posix(), btn_ok="Copy"),
+            InputDialog(title=msg, value=dst, btn_ok="Copy"),
             on_copy,
         )
 
@@ -317,12 +321,12 @@ class F2Commander(App):
                 self.inactive_filelist.update_listing()
 
         msg = (
-            f"Move {sources[0].name} to"
+            f"Move {os.path.basename(sources[0])} to"
             if len(sources) == 1
             else f"Move {len(sources)} selected entries to"
         )
         self.push_screen(
-            InputDialog(title=msg, value=dst.as_posix(), btn_ok="Move"),
+            InputDialog(title=msg, value=dst, btn_ok="Move"),
             on_move,
         )
 
@@ -338,7 +342,7 @@ class F2Commander(App):
                 self.active_filelist.update_listing()
 
         msg = (
-            f"This will move {paths[0].name} to Trash"
+            f"This will move {os.path.basename(paths[0])} to Trash"
             if len(paths) == 1
             else f"This will move {len(paths)} selected entries to Trash"
         )
@@ -356,8 +360,8 @@ class F2Commander(App):
     def action_mkdir(self):
         def on_mkdir(result: str | None):
             if result is not None:
-                new_dir_path = self.active_filelist.path / result
-                new_dir_path.mkdir(parents=True, exist_ok=True)
+                new_dir_path = os.path.join(self.active_filelist.path, result)
+                Path(new_dir_path).mkdir(parents=True, exist_ok=True)
                 self.active_filelist.update_listing()
 
         self.push_screen(
@@ -387,7 +391,7 @@ class F2Commander(App):
     def action_go_to_bookmark(self):
         def on_select(path: Path | None):
             if path is not None:
-                self.active_filelist.path = path
+                self.active_filelist.path = path.as_posix()
 
         self.app.push_screen(GoToBookmarkDialog(), on_select)
 
@@ -398,7 +402,6 @@ class F2Commander(App):
         def on_enter(result: str | None):
             if result is not None:
                 fs, path = url_to_fs(result)
-                path = Path(path) if path != "" else Path("/")
                 if fs.isdir(path):
                     self.active_filelist.fs = fs
                     self.active_filelist.path = path
@@ -408,9 +411,7 @@ class F2Commander(App):
                     )
 
         self.push_screen(
-            InputDialog(
-                "Jump to...", value=self.active_filelist.path.as_posix(), btn_ok="Go"
-            ),
+            InputDialog("Jump to...", value=self.active_filelist.path, btn_ok="Go"),
             on_enter,
         )
 
