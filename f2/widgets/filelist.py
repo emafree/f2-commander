@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
+from fsspec import filesystem
 from humanize import naturalsize
 from rich.text import Text
 from textual import events, work
@@ -133,7 +134,9 @@ class FileList(Static):
         def contol(self) -> "FileList":
             return self.file_list
 
+    fs = filesystem("file")
     path = reactive(Path.cwd())
+
     sort_options = reactive(SortOptions("name"))
     show_hidden = reactive(False)
     dirs_first = reactive(False)
@@ -155,10 +158,6 @@ class FileList(Static):
 
     def on_resize(self):
         self.update_listing()
-
-    @property
-    def current_path(self):
-        pass
 
     def selected_paths(self) -> list[Path]:
         if len(self.selection) > 0:
@@ -349,7 +348,10 @@ class FileList(Static):
     def update_listing(self):
         old_cursor_path = self.cursor_path
         ls = list_dir(
-            self.path, include_hidden=self.show_hidden, glob_expression=self.glob
+            self.fs,
+            self.path,
+            include_hidden=self.show_hidden,
+            glob_expression=self.glob,
         )
         self._update_table(ls)
         # if still in the same dir, try to locate the previous cursor position

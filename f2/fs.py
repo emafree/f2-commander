@@ -8,8 +8,11 @@ import fnmatch
 import os
 import stat
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
+
+from fsspec import AbstractFileSystem, filesystem
 
 
 @dataclass
@@ -32,21 +35,43 @@ class DirEntry:
     is_executable: bool
 
     @classmethod
-    def from_path(cls, p: Path) -> "DirEntry":
-        statinfo = p.lstat()
+    def from_path(cls, fs: AbstractFileSystem, path: Path) -> "DirEntry":
+        info = fs.info(path.as_posix())
         return DirEntry(
-            name=p.name,
-            size=statinfo.st_size,
-            mtime=statinfo.st_mtime,
-            is_file=stat.S_ISREG(statinfo.st_mode),
-            is_dir=stat.S_ISDIR(statinfo.st_mode),
-            is_link=stat.S_ISLNK(statinfo.st_mode),
-            is_hidden=is_hidden(p, statinfo),
-            is_executable=is_executable(statinfo),
+            name=path.name,
+            size=info.get("size") or fs.size(path),
+            mtime=_find_mtime(info),
+            is_dir=info.get("type") == "directory",
+            is_file=info.get("type") == "file",
+            is_link=info.get("islink", False),
+            is_hidden=_is_hidden(info),
+            is_executable=_is_executable(info),
         )
 
 
-def has_hidden_attribute(statinfo: os.stat_result) -> bool:
+def _find_mtime(info: dict[str, Any]):
+    value = info.get("mtime", info.get("updated"))
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value)
+    if isinstance(value, datetime):
+        value = value.timestamp()
+    return value
+
+
+def _is_hidden(info: dict[str, Any]) -> bool:
+    path = Path(info["name"])
+    return path.name.startswith(".") or _is_local_file_hidden(path)
+
+
+def _is_local_file_hidden(path: Path) -> bool:
+    if not path.exists():
+        return False
+
+    statinfo = path.lstat()
+    return _has_hidden_attribute(statinfo) or _has_hidden_flag(statinfo)
+
+
+def _has_hidden_attribute(statinfo: os.stat_result) -> bool:
     if not hasattr(statinfo, "st_file_attributes"):
         return False
     if not hasattr(stat, "FILE_ATTRIBUTE_HIDDEN"):
@@ -56,26 +81,22 @@ def has_hidden_attribute(statinfo: os.stat_result) -> bool:
     )
 
 
-def has_hidden_flag(statinfo: os.stat_result) -> bool:
+def _has_hidden_flag(statinfo: os.stat_result) -> bool:
     if not hasattr(stat, "UF_HIDDEN") or not hasattr(statinfo, "st_flags"):
         return False
     return bool(statinfo.st_flags & stat.UF_HIDDEN)  # type: ignore
 
 
-def is_hidden(path: Path, statinfo: os.stat_result) -> bool:
-    return (
-        path.name.startswith(".")
-        or has_hidden_attribute(statinfo)
-        or has_hidden_flag(statinfo)
-    )
+def _is_executable(statinfo: dict[str, Any]) -> bool:
+    if "mode" not in statinfo:
+        return False
 
-
-def is_executable(statinfo: os.stat_result) -> bool:
-    mode = statinfo.st_mode
+    mode = statinfo["mode"]
     return stat.S_ISREG(mode) and bool(mode & stat.S_IXUSR)
 
 
 def list_dir(
+    fs: AbstractFileSystem,
     path: Path,
     include_up_dir: bool = True,
     include_hidden: bool = True,
@@ -90,12 +111,12 @@ def list_dir(
     entries = []
 
     if include_up_dir and path.parent != path:
-        up = DirEntry.from_path(path)
+        up = DirEntry.from_path(fs, path)
         up.name = ".."
         entries.append(up)
 
-    for child in path.iterdir():
-        entry = DirEntry.from_path(child)
+    for child in fs.ls(path.as_posix()):
+        entry = DirEntry.from_path(fs, Path(child))
         if glob_expression and not fnmatch.fnmatch(entry.name, glob_expression):
             continue
         if entry.is_hidden and not include_hidden:
@@ -116,12 +137,16 @@ def list_dir(
 
 
 def breadth_first_walk(path: Path, include_hidden: bool = True) -> Iterator[Path]:
+
+    fs = filesystem("file")  # TODO: support other filesystems
+
     dirs_to_walk = [path]
     while dirs_to_walk:
         next_dirs_to_walk = []
         for d in dirs_to_walk:
-            for p in sorted(d.iterdir()):
-                if is_hidden(p, p.lstat()) and not include_hidden:
+            for p in fs.ls(d.as_posix()):
+                info = fs.info(path.as_posix())
+                if _is_hidden(info) and not include_hidden:
                     continue
                 if p.is_dir():
                     next_dirs_to_walk.append(p)
