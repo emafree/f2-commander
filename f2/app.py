@@ -429,12 +429,14 @@ class F2Commander(App):
             on_delete,
         )
 
-    # TODO fsspec: use fs.mkdir
     def action_mkdir(self):
+        fs = self.active_filelist.fs
+        src = self.active_filelist.path
+
         def on_mkdir(result: str | None):
             if result is not None:
-                new_dir_path = os.path.join(self.active_filelist.path, result)
-                Path(new_dir_path).mkdir(parents=True, exist_ok=True)
+                new_dir_path = posixpath.join(src, result)
+                fs.makedirs(new_dir_path, exist_ok=True)
                 self.active_filelist.update_listing()
 
         self.push_screen(
