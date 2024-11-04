@@ -23,7 +23,7 @@ from textual.reactive import reactive
 from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowDoesNotExist
 
-from f2.fs import DirEntry, DirList, list_dir
+from f2.fs import DirEntry, DirList, is_executable, list_dir
 
 from ..commands import Command
 from ..config import config_root
@@ -163,8 +163,7 @@ class FileList(Static):
     def selected_paths(self) -> list[str]:
         if len(self.selection) > 0:
             return list([posixpath.join(self.path, name) for name in self.selection])
-        # FIXME fsspec: does ".." test work now with path being a raw string?
-        elif self.cursor_path != "..":
+        elif posixpath.basename(self.cursor_path) != "..":
             return [self.cursor_path]
         else:
             return []  # FIXME: should be None
@@ -173,7 +172,6 @@ class FileList(Static):
         self.selection = set()
 
     def add_selection(self, name):
-        # FIXME fsspec: does ".." test work now with path being a raw string?
         if name == "..":
             return
         self.selection.add(name)
@@ -438,7 +436,7 @@ class FileList(Static):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected):
         entry_name: str = event.row_key.value  # type: ignore
-        selected_path = posixpath.join(self.path, entry_name)
+        selected_path = posixpath.normpath(posixpath.join(self.path, entry_name))
         if self.fs.isdir(selected_path):
             self.path = selected_path
 
@@ -446,19 +444,18 @@ class FileList(Static):
         # "open" is handled separately from "table.row_selected" to distinguish
         # between "enter" and mouse click (avoid navigation and running
         # apps on mouse clickd)
-        # TODO fsspec: or use fs.isdir()?
-        entry = DirEntry.from_path(self.fs, self.cursor_path)
-        if entry.is_dir:
+        if self.fs.isdir(self.cursor_path):
             pass  # already handled by on_data_table_row_selected
-        elif entry.is_file and entry.is_executable:
-            # TODO: ask to confirm to run, let chose mode (on a side or in a shell)
-            pass
-        else:
-            # TODO fsspec: download remote files
-            open_cmd = native_open()
-            if open_cmd is not None:
-                with self.app.suspend():
-                    subprocess.run(open_cmd + [self.cursor_path])
+        elif self.fs.isfile(self.cursor_path):
+            if is_executable(self.fs.info(self.cursor_path)):
+                # TODO: ask to confirm to run, let chose mode (on a side or in a shell)
+                pass
+            else:
+                # TODO fsspec: download remote files
+                open_cmd = native_open()
+                if open_cmd is not None:
+                    with self.app.suspend():
+                        subprocess.run(open_cmd + [self.cursor_path])
 
     def action_open_in_os_file_manager(self):
         # TODO fsspec: this is only available for local files

@@ -36,17 +36,16 @@ class DirEntry:
     is_executable: bool
 
     @classmethod
-    def from_path(cls, fs: AbstractFileSystem, path: str) -> "DirEntry":
-        info = fs.info(path)
+    def from_info(cls, fs: AbstractFileSystem, info: dict[str, Any]) -> "DirEntry":
         return DirEntry(
-            name=posixpath.basename(path),
-            size=info.get("size") or fs.size(path),  # FIXME fsspec: why of fs.size?
+            name=posixpath.basename(info["name"]),
+            size=info.get("size"),
             mtime=_find_mtime(info),
             is_dir=info.get("type") == "directory",
             is_file=info.get("type") == "file",
             is_link=info.get("islink", False),
             is_hidden=_is_hidden(info),
-            is_executable=_is_executable(info),
+            is_executable=is_executable(info),
         )
 
 
@@ -90,7 +89,7 @@ def _has_hidden_flag(statinfo: os.stat_result) -> bool:
     return bool(statinfo.st_flags & stat.UF_HIDDEN)  # type: ignore
 
 
-def _is_executable(statinfo: dict[str, Any]) -> bool:
+def is_executable(statinfo: dict[str, Any]) -> bool:
     if "mode" not in statinfo:
         return False
 
@@ -101,7 +100,6 @@ def _is_executable(statinfo: dict[str, Any]) -> bool:
 def list_dir(
     fs: AbstractFileSystem,
     path: str,
-    include_up_dir: bool = True,
     include_hidden: bool = True,
     glob_expression: str | None = None,
 ) -> DirList:
@@ -113,15 +111,13 @@ def list_dir(
     dir_count = 0
     entries = []
 
-    # FIXME fsspec: control if at root with another method
-    if include_up_dir and posixpath.dirname(path) != path:
-        up = DirEntry.from_path(fs, path)
+    if posixpath.dirname(path) != path:
+        up = DirEntry.from_info(fs, fs.info(path))
         up.name = ".."
         entries.append(up)
 
-    # TODO fsspec: ls detail=True at once
-    for child in fs.ls(path, detail=False):
-        entry = DirEntry.from_path(fs, child)
+    for child in fs.ls(path, detail=True):
+        entry = DirEntry.from_info(fs, child)
         if glob_expression and not fnmatch.fnmatch(entry.name, glob_expression):
             continue
         if entry.is_hidden and not include_hidden:
@@ -149,12 +145,11 @@ def breadth_first_walk(path: str, include_hidden: bool = True) -> Iterator[str]:
     while dirs_to_walk:
         next_dirs_to_walk = []
         for d in dirs_to_walk:
-            # TODO fsspec: ls detail=True at once
-            for p in fs.ls(d, detail=False):
-                info = fs.info(path)
+            for info in fs.ls(d, detail=True):
+                p = info["name"]
                 if _is_hidden(info) and not include_hidden:
                     continue
-                if fs.isdir(p):
+                if info.get("type") == "directory":
                     next_dirs_to_walk.append(p)
                 yield p
         dirs_to_walk = next_dirs_to_walk
