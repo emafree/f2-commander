@@ -23,7 +23,7 @@ from textual.reactive import reactive
 from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowDoesNotExist
 
-from f2.fs import DirEntry, DirList, is_executable, list_dir
+from f2.fs import DirEntry, DirList, is_executable, list_dir, is_local_fs
 
 from ..commands import Command
 from ..config import config_root
@@ -367,7 +367,7 @@ class FileList(Static):
                 pass
         # update list border with some information about the directory:
         total_size_str = naturalsize(ls.total_size)
-        if "file" in self.fs.protocol:
+        if is_local_fs(self.fs):
             self.parent.border_title = self.path
         else:
             self.parent.border_title = self.fs.unstrip_protocol(self.path)

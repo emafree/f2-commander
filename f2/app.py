@@ -5,8 +5,10 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import os
+import posixpath
 import shutil
 import subprocess
+import tempfile
 from functools import partial
 from importlib.metadata import version
 from pathlib import Path
@@ -23,6 +25,7 @@ from textual.widgets import Footer
 
 from .commands import Command
 from .config import config, set_user_has_accepted_license, user_has_accepted_license
+from .fs import is_local_fs
 from .shell import editor, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.dialogs import InputDialog, StaticDialog, Style
@@ -248,14 +251,58 @@ class F2Commander(App):
                 # TODO fsspec: also in which FS?
                 c.on_other_panel_selected(event.path)
 
+    def _confirm_download(self, fs, path, cont_fn):
+        def on_download(result: bool):
+            if result:
+                _, tmp_file_path = tempfile.mkstemp(
+                    prefix=f"{posixpath.basename(path)}."
+                )
+                fs.get(path, tmp_file_path)
+                cont_fn(tmp_file_path)
+
+        msg = (
+            "The file is not in the local file system. "
+            "It will be downloaded first. Continue?"
+        )
+        self.push_screen(
+            StaticDialog(
+                title="Download?",
+                message=msg,
+                btn_ok="Yes",
+                btn_cancel="No",
+            ),
+            on_download,
+        )
+
+    def _confirm_upload(self, fs, local_path, remote_path, cont_fn):
+        def on_upload(result: bool):
+            if result:
+                fs.put(local_path, remote_path)
+            cont_fn(local_path)
+
+        self.app.push_screen(
+            StaticDialog(
+                title="Upload?",
+                message="The file was modified. Do you want to upload the new version?",
+                btn_ok="Yes",
+                btn_cancel="No",
+            ),
+            on_upload,
+        )
+
     def action_view(self):
+        fs = self.active_filelist.fs
+        is_local = is_local_fs(fs)
         src = self.active_filelist.cursor_path
-        # TODO fsspec: use fs.isfile, etc.
-        if os.path.isfile(src):
+
+        if not fs.isfile(src):
+            return
+
+        def _view(path: str):
             viewer_cmd = viewer(or_editor=True)
             if viewer_cmd is not None:
                 with self.app.suspend():
-                    completed_process = subprocess.run(viewer_cmd + [src])
+                    completed_process = subprocess.run(viewer_cmd + [path])
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Viewer exited with an error ({exit_code})"
@@ -263,20 +310,46 @@ class F2Commander(App):
             else:
                 self.push_screen(StaticDialog.error("Error", "No viewer found!"))
 
+        def _view_temp(path: str):
+            _view(path)
+            os.unlink(path)
+
+        if is_local:
+            _view(src)
+        else:
+            self._confirm_download(fs, src, cont_fn=_view_temp)
+
     def action_edit(self):
+        fs = self.active_filelist.fs
+        is_local = is_local_fs(fs)
         src = self.active_filelist.cursor_path
-        # TODO fsspec: use fs.isfile, etc.
-        if os.path.isfile(src):
+
+        if not fs.isfile(src):
+            return
+
+        def _edit(path: str):
             editor_cmd = editor()
             if editor_cmd is not None:
                 with self.app.suspend():
-                    completed_process = subprocess.run(editor_cmd + [src])
+                    completed_process = subprocess.run(editor_cmd + [path])
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Editor exited with an error ({exit_code})"
                     self.push_screen(StaticDialog.warning("Error", msg))
             else:
                 self.push_screen(StaticDialog.error("Error", "No editor found!"))
+
+        def _edit_and_upload(path: str):
+            prev_mtime = Path(path).stat().st_mtime
+            _edit(path)
+            new_mtime = Path(path).stat().st_mtime
+            if new_mtime > prev_mtime:
+                self._confirm_upload(fs, path, src, cont_fn=lambda p: os.unlink(p))
+
+        if is_local:
+            _edit(src)
+        else:
+            self._confirm_download(fs, src, cont_fn=_edit_and_upload)
 
     # TODO fsspec: use fs.copy, get, put
     def action_copy(self):

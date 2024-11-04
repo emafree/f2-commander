@@ -152,3 +152,7 @@ def breadth_first_walk(
                     next_dirs_to_walk.append(p)
                 yield p
         dirs_to_walk = next_dirs_to_walk
+
+
+def is_local_fs(fs: AbstractFileSystem) -> bool:
+    return "file" in fs.protocol
