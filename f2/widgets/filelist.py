@@ -135,6 +135,7 @@ class FileList(Static):
         def contol(self) -> "FileList":
             return self.file_list
 
+    # FIXME: this is not an instance attribute!!! (same in preview, where else?)
     fs = filesystem("file")
     path = reactive(Path.cwd().as_posix())
 
@@ -364,7 +365,10 @@ class FileList(Static):
                 pass
         # update list border with some information about the directory:
         total_size_str = naturalsize(ls.total_size)
-        self.parent.border_title = self.path
+        if "file" in self.fs.protocol:
+            self.parent.border_title = self.path
+        else:
+            self.parent.border_title = self.fs.unstrip_protocol(self.path)
         subtitle = f"{total_size_str} in {ls.file_count} files | {ls.dir_count} dirs"
         if self.glob is not None:
             subtitle = f"[red]{self.glob}[/red] | {subtitle}"

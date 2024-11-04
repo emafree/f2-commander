@@ -11,6 +11,7 @@ from functools import partial
 from importlib.metadata import version
 from pathlib import Path
 
+from fsspec import AbstractFileSystem
 from fsspec.core import url_to_fs
 from send2trash import send2trash
 from textual import on, work
@@ -387,32 +388,33 @@ class F2Commander(App):
         else:
             self.push_screen(StaticDialog.error("Error", "No shell found!"))
 
-    # TODO fsspec: support bookmarks in remote filesystems, or explicilty disallow
-    def action_go_to_bookmark(self):
-        def on_select(path: Path | None):
-            if path is not None:
-                self.active_filelist.path = path.as_posix()
+    def _on_go_to(self, url: str | None):
+        if url is None:
+            return
 
-        self.app.push_screen(GoToBookmarkDialog(), on_select)
+        try:
+            fs, path = url_to_fs(url)
+            is_dir = fs.isdir(path)
+            err_msg = f"{url} is not a directory" if not is_dir else None
+        except Exception as err:
+            is_dir = False
+            err_msg = str(err)
+
+        if is_dir:
+            self.active_filelist.fs = fs
+            self.active_filelist.path = path
+        else:
+            self.push_screen(StaticDialog.info(f"Cannot navigate to {url}", err_msg))
+
+    def action_go_to_bookmark(self):
+        self.app.push_screen(GoToBookmarkDialog(), self._on_go_to)
 
     # TODO fsspec: "go to path" works for simpe urls only -> need "Connect to" feature
     # TODO fsspec: automatically use zip:// and similar when "enter"ing archives
-
     def action_go_to_path(self):
-        def on_enter(result: str | None):
-            if result is not None:
-                fs, path = url_to_fs(result)
-                if fs.isdir(path):
-                    self.active_filelist.fs = fs
-                    self.active_filelist.path = path
-                else:
-                    self.push_screen(
-                        StaticDialog.info("Nope...", f"{result} is not a directory")
-                    )
-
         self.push_screen(
             InputDialog("Jump to...", value=self.active_filelist.path, btn_ok="Go"),
-            on_enter,
+            self._on_go_to,
         )
 
     def action_quit_confirm(self):

@@ -5,7 +5,10 @@
 # Copyright (c) 2024 Timur Rubeko
 
 from pathlib import Path
+from urllib.parse import urlparse
 
+from fsspec import AbstractFileSystem
+from fsspec.core import url_to_fs
 from rich.text import Text
 from textual import events, on
 from textual.app import ComposeResult
@@ -18,7 +21,6 @@ from textual.widgets.option_list import Option
 from ..config import config
 
 
-# TODO fsspec: support remote bookmarks, or explicitly only allow local ones
 class GoToBookmarkDialog(ModalScreen):
     BINDINGS = [
         Binding("escape", "dismiss", show=False),
@@ -29,15 +31,18 @@ class GoToBookmarkDialog(ModalScreen):
     def __init__(self):
         super().__init__()
         options = [
-            self._to_option(idx, path) for idx, path in enumerate(config.bookmarks)
+            self._to_option(idx, url) for idx, url in enumerate(config.bookmarks)
         ]
         self.option_list = OptionList(*options, id="options")
 
-    def _to_option(self, idx: int, path: str) -> Option:
+    def _to_option(self, idx: int, url: str) -> Option:
         prefix = (f"[{idx}]", "grey50") if idx in range(1, 10) else "   "
+        # validate local paths, but allow all URLs (won't connect to validate them):
+        is_url = urlparse(url).scheme != ""
+        is_dir = Path(url).expanduser().is_dir() if not is_url else False
         return Option(
-            Text.assemble(prefix, " ", path),  # type: ignore
-            disabled=self._dir_path(path) is None,
+            Text.assemble(prefix, " ", url),  # type: ignore
+            disabled=not is_url and not is_dir,
         )
 
     def compose(self) -> ComposeResult:
@@ -57,6 +62,7 @@ class GoToBookmarkDialog(ModalScreen):
 
     def on_key(self, event: events.Key) -> None:
         if event.key in [str(i) for i in range(1, 10)]:
+            # FIXME: do not allow disabled indices to be selected
             idx = int(event.key)
             self.on_index_selected(idx)
         elif event.key == "j":
@@ -66,12 +72,4 @@ class GoToBookmarkDialog(ModalScreen):
 
     def on_index_selected(self, idx):
         value = config.bookmarks[idx]
-        path_or_nothing = self._dir_path(value)
-        self.dismiss(path_or_nothing)
-
-    def _dir_path(self, maybe_dir_path: str) -> Path | None:
-        """Attempt to resolve the provided directory path, or return None"""
-        path = Path(maybe_dir_path)
-        if "~" in maybe_dir_path:
-            path = path.expanduser()
-        return path if path.is_dir() else None
+        self.dismiss(value)

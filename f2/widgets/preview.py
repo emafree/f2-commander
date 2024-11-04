@@ -5,10 +5,12 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import mimetypes
+import posixpath
 import shutil
 import subprocess
 from pathlib import Path
 
+import fsspec
 from rich.syntax import Syntax
 from textual.app import ComposeResult
 from textual.reactive import reactive
@@ -20,27 +22,30 @@ from ..fs import breadth_first_walk
 
 
 class Preview(Static):
+
     # TODO fsspec: either also pass fs, or support the Preview for local files only
-    preview_path = reactive(Path.cwd(), recompose=True)
+    fs = fsspec.filesystem("file")
+
+    preview_path = reactive(Path.cwd().as_posix(), recompose=True)
 
     def compose(self) -> ComposeResult:
         yield Static(self._format(self.preview_path))
 
     # FIXME: push_message (in)directy to the "other" panel?
-    def on_other_panel_selected(self, path: Path):
+    def on_other_panel_selected(self, path: str):
         self.preview_path = path
 
-    def watch_preview_path(self, old: Path, new: Path):
+    def watch_preview_path(self, old: str, new: str):
         parent: Widget = self.parent  # type: ignore
-        parent.border_title = str(new)
+        parent.border_title = new
         parent.border_subtitle = None
 
-    def _format(self, path):
+    def _format(self, path: str):
         if path is None:
             return ""
-        elif path.is_dir():
+        elif self.fs.isdir(path):
             return self._dir_tree(path)
-        elif path.is_file() and self._is_text(path):
+        elif self.fs.isfile(path) and self._is_text(path):
             try:
                 return Syntax(code=self._head(path), lexer=Syntax.guess_lexer(path))
             except UnicodeDecodeError:
@@ -67,9 +72,9 @@ class Preview(Static):
         """Viewport is not higher than this number of lines"""
         return shutil.get_terminal_size(fallback=(80, 200))[1]
 
-    def _head(self, path):
+    def _head(self, path: str):
         lines = []
-        with open(path, "r") as f:
+        with self.fs.open(path, "r") as f:
             try:
                 for _ in range(self._height):
                     lines.append(next(f))
@@ -85,21 +90,27 @@ class Preview(Static):
 
         # collect paths to show, breadth-first, but at most a screenful:
         collected_paths = []
-        for i, p in enumerate(breadth_first_walk(path, config.show_hidden)):
+        for i, p in enumerate(breadth_first_walk(self.fs, path, config.show_hidden)):
             if i > self._height:
                 break
-            if p.parent in collected_paths:
-                siblings = [e for e in collected_paths if e.parent == p.parent]  # :'(
-                insert_at = collected_paths.index(p.parent) + len(siblings) + 1
+            if posixpath.dirname(p) in collected_paths:
+                siblings = [
+                    e
+                    for e in collected_paths
+                    if posixpath.dirname(e) == posixpath.dirname(p)
+                ]
+                insert_at = (
+                    collected_paths.index(posixpath.dirname(p)) + len(siblings) + 1
+                )
                 collected_paths.insert(insert_at, p)
             else:
                 collected_paths.append(p)
 
         # format paths:
-        lines = [str(path)]
+        lines = [path]
         for p in collected_paths:
-            name = str(p.relative_to(path))
-            if p.is_dir():
+            name = posixpath.relpath(p, path)
+            if self.fs.isdir(p):
                 name += "/"
             lines.append(f"┣ {name}")
         return "\n".join(lines)

@@ -119,6 +119,8 @@ Features:
    - [ ] FTP, FTPS, SFTP
    - [ ] ... show must go on ...
 
+   - [ ] Predefined "remote" file systems can be bookmarked
+
  - Archival and compression support
 
    - [ ] ZIP (read, create, update)

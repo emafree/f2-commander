@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Starts an anoymous FTP server for testing purposes, serves ~/tmp directory, writable
+
+
+if [ -z "$(pipx list | grep pyftpdlib)" ]; then
+  pipx install pyftpdlib
+fi
+
+~/.local/pipx/venvs/pyftpdlib/bin/python \
+  -m pyftpdlib -i 127.0.0.1 -p 2121 -d ~/tmp --write
