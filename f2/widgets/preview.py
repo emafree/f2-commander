@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import fsspec
+from fsspec import filesystem
 from rich.syntax import Syntax
 from textual.app import ComposeResult
 from textual.reactive import reactive
@@ -23,10 +23,12 @@ from ..fs import breadth_first_walk
 
 class Preview(Static):
 
-    # TODO fsspec: either also pass fs, or support the Preview for local files only
-    fs = fsspec.filesystem("file")
-
+    # TODO fsspec: either also pass fs when chaning path
     preview_path = reactive(Path.cwd().as_posix(), recompose=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fs = filesystem("file")
 
     def compose(self) -> ComposeResult:
         yield Static(self._format(self.preview_path))

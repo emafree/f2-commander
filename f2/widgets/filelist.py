@@ -135,8 +135,6 @@ class FileList(Static):
         def contol(self) -> "FileList":
             return self.file_list
 
-    # FIXME: this is not an instance attribute!!! (same in preview, where else?)
-    fs = filesystem("file")
     path = reactive(Path.cwd().as_posix())
 
     sort_options = reactive(SortOptions("name"))
@@ -147,6 +145,10 @@ class FileList(Static):
     active = reactive(False)
     glob = reactive(None)
     selection: set[str] = set()  # TODO fsspec: how to convey in which FS this is?
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fs = filesystem("file")
 
     def compose(self) -> ComposeResult:
         self.table: DataTable = DataTable(cursor_type="row")

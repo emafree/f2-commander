@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterator
 
-from fsspec import AbstractFileSystem, filesystem
+from fsspec import AbstractFileSystem
 
 
 @dataclass
@@ -39,7 +39,7 @@ class DirEntry:
     def from_info(cls, fs: AbstractFileSystem, info: dict[str, Any]) -> "DirEntry":
         return DirEntry(
             name=posixpath.basename(info["name"]),
-            size=info.get("size"),
+            size=int(info.get("size", 0)),
             mtime=_find_mtime(info),
             is_dir=info.get("type") == "directory",
             is_file=info.get("type") == "file",
@@ -137,7 +137,9 @@ def list_dir(
     )
 
 
-def breadth_first_walk(fs: AbstractFileSystem, path: str, include_hidden: bool = True) -> Iterator[str]:
+def breadth_first_walk(
+    fs: AbstractFileSystem, path: str, include_hidden: bool = True
+) -> Iterator[str]:
     dirs_to_walk = [path]
     while dirs_to_walk:
         next_dirs_to_walk = []

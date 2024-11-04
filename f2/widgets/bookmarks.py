@@ -7,8 +7,6 @@
 from pathlib import Path
 from urllib.parse import urlparse
 
-from fsspec import AbstractFileSystem
-from fsspec.core import url_to_fs
 from rich.text import Text
 from textual import events, on
 from textual.app import ComposeResult

@@ -11,7 +11,6 @@ from functools import partial
 from importlib.metadata import version
 from pathlib import Path
 
-from fsspec import AbstractFileSystem
 from fsspec.core import url_to_fs
 from send2trash import send2trash
 from textual import on, work
