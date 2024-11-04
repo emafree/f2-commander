@@ -401,22 +401,35 @@ class F2Commander(App):
             on_move,
         )
 
-    # TODO fsspec: use fs.delete for remote, keep send2trash for local
     def action_delete(self):
+        fs = self.active_filelist.fs
         paths = self.active_filelist.selected_paths()
 
         def on_delete(result: bool):
             if result:
                 for path in paths:
-                    send2trash(path)
+                    if is_local_fs(fs):
+                        send2trash(path)
+                    else:
+                        if fs.isdir(path):
+                            fs.rm(path, recursive=True)
+                        else:
+                            fs.rm(path, recursive=False)
                 self.active_filelist.selection = set()
                 self.active_filelist.update_listing()
 
-        msg = (
-            f"This will move {os.path.basename(paths[0])} to Trash"
-            if len(paths) == 1
-            else f"This will move {len(paths)} selected entries to Trash"
-        )
+        if is_local_fs(fs):
+            msg = (
+                f"This will move {posixpath.basename(paths[0])} to Trash"
+                if len(paths) == 1
+                else f"This will move {len(paths)} selected entries to Trash"
+            )
+        else:
+            msg = (
+                f"This will PERMANENTLY DELETE {posixpath.basename(paths[0])}"
+                if len(paths) == 1
+                else f"This will PERMANENTLY DELETE {len(paths)} selected entries"
+            )
         self.push_screen(
             StaticDialog(
                 title="Delete?",
