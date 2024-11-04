@@ -292,7 +292,6 @@ class F2Commander(App):
 
     def action_view(self):
         fs = self.active_filelist.fs
-        is_local = is_local_fs(fs)
         src = self.active_filelist.cursor_path
 
         if not fs.isfile(src):
@@ -314,14 +313,13 @@ class F2Commander(App):
             _view(path)
             os.unlink(path)
 
-        if is_local:
+        if is_local_fs(fs):
             _view(src)
         else:
             self._confirm_download(fs, src, cont_fn=_view_temp)
 
     def action_edit(self):
         fs = self.active_filelist.fs
-        is_local = is_local_fs(fs)
         src = self.active_filelist.cursor_path
 
         if not fs.isfile(src):
@@ -346,7 +344,7 @@ class F2Commander(App):
             if new_mtime > prev_mtime:
                 self._confirm_upload(fs, path, src, cont_fn=lambda p: os.unlink(p))
 
-        if is_local:
+        if is_local_fs(fs):
             _edit(src)
         else:
             self._confirm_download(fs, src, cont_fn=_edit_and_upload)
@@ -445,14 +443,13 @@ class F2Commander(App):
         )
 
     def action_shell(self):
+        fs = self.active_filelist.fs
+        cwd = self.active_filelist.path if is_local_fs(fs) else Path.cwd().as_posix()
+
         shell_cmd = shell()
         if shell_cmd is not None:
             with self.app.suspend():
-                completed_process = subprocess.run(
-                    shell_cmd,
-                    # TODO fsspec: active path if local FS, otherwise CWD
-                    cwd=self.active_filelist.path,
-                )
+                completed_process = subprocess.run(shell_cmd, cwd=cwd)
             self.active_filelist.update_listing()
             self.inactive_filelist.update_listing()
             exit_code = completed_process.returncode
