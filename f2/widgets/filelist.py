@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-from fsspec import filesystem
+from fsspec import AbstractFileSystem, filesystem
 from humanize import naturalsize
 from rich.text import Text
 from textual import events, work
@@ -23,7 +23,7 @@ from textual.reactive import reactive
 from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowDoesNotExist
 
-from f2.fs import DirEntry, DirList, is_executable, list_dir, is_local_fs
+from f2.fs import DirEntry, DirList, is_executable, is_local_fs, list_dir
 
 from ..commands import Command
 from ..config import config_root
@@ -124,9 +124,9 @@ class FileList(Static):
     SCROLLBAR_SIZE = 2
     TIME_FORMAT = "%b %d %H:%M"
 
-    # TODO fsspec: how to also convey in which FS is the path located?
     class Selected(Message):
-        def __init__(self, path: str, file_list: "FileList"):
+        def __init__(self, fs: AbstractFileSystem, path: str, file_list: "FileList"):
+            self.fs = fs
             self.path = path
             self.file_list = file_list
             super().__init__()
@@ -141,10 +141,14 @@ class FileList(Static):
     show_hidden = reactive(False)
     dirs_first = reactive(False)
     order_case_sensitive = reactive(False)
-    cursor_path = reactive(Path.cwd().as_posix())  # TODO fsspec: uses in app.py
+    # FIXME: cursor_path only makes sense with the fs instance; users just "need" to
+    #        know this fact; ideally need an anstraction for fs+path, or generate
+    #        events for changes in cursor_path, or just expose a get_cursor_path()
+    cursor_path = reactive(Path.cwd().as_posix())
     active = reactive(False)
     glob = reactive(None)
-    selection: set[str] = set()  # TODO fsspec: how to convey in which FS this is?
+    # FIXME: same as for cursor_path above
+    selection: set[str] = set()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -358,8 +362,8 @@ class FileList(Static):
             glob_expression=self.glob,
         )
         self._update_table(ls)
-        # if still in the same dir, try to locate the previous cursor position
-        if posixpath.dirname(old_cursor_path) == self.path:
+        # if stil in same dir as before, restore the cursor position
+        if self.path == posixpath.dirname(old_cursor_path):
             try:
                 idx = self.table.get_row_index(posixpath.basename(old_cursor_path))
                 self.table.cursor_coordinate = (idx, 0)  # type: ignore
@@ -381,8 +385,6 @@ class FileList(Static):
         self.glob = None
         self.update_listing()
         # if navigated "up", select source dir in the new list:
-        # TODO fsspec: is this code block same exactly as above in update_listing?
-        # TODO fsspec: will this work here? (parent == path)
         if new_path == posixpath.dirname(old_path):
             try:
                 idx = self.table.get_row_index(posixpath.basename(old_path))
@@ -454,7 +456,7 @@ class FileList(Static):
             pass  # already handled by on_data_table_row_selected
         elif self.fs.isfile(self.cursor_path):
             if is_executable(self.fs.info(self.cursor_path)):
-                # TODO: ask to confirm to run, let chose mode (on a side or in a shell)
+                # TODO: ask to confirm to run, let choose mode (on a side or in a shell)
                 pass
             else:
                 # TODO fsspec: download remote files
@@ -464,7 +466,9 @@ class FileList(Static):
                         subprocess.run(open_cmd + [self.cursor_path])
 
     def action_open_in_os_file_manager(self):
-        # TODO fsspec: this is only available for local files
+        if not is_local_fs(self.fs):
+            return
+
         open_cmd = native_open()
         if open_cmd is not None:
             with self.app.suspend():
@@ -493,10 +497,7 @@ class FileList(Static):
         self.table.update_cell(cursor_name, "size", placeholder)
 
         # then, calculate and show the size (can be slow):
-        # TODO fsspec: cannot use Path.rglob() and f.stat() here
-        size = sum(
-            f.stat().st_size for f in Path(self.cursor_path).rglob("*") if f.is_file()
-        )
+        size = self.fs.du(self.cursor_path, total=True, withdirs=True)
         size_text = Text(naturalsize(size), style=style, justify="right")
         self.table.update_cell(cursor_name, "size", size_text)
 
@@ -511,7 +512,9 @@ class FileList(Static):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         name: str = event.row_key.value  # type: ignore
         self.cursor_path = posixpath.join(self.path, name)
-        self.post_message(self.Selected(path=self.cursor_path, file_list=self))
+        self.post_message(
+            self.Selected(fs=self.fs, path=self.cursor_path, file_list=self)
+        )
 
     def on_descendant_focus(self):
         self.active = True

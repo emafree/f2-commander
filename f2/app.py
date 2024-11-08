@@ -249,8 +249,7 @@ class F2Commander(App):
     def on_file_selected(self, event: FileList.Selected):
         for c in self.query("Panel > *"):
             if hasattr(c, "on_other_panel_selected"):
-                # TODO fsspec: also in which FS?
-                c.on_other_panel_selected(event.path)
+                c.on_other_panel_selected(event.fs, event.path)
 
     def _download(self, fs, path, cont_fn):
         def on_download(result: bool):

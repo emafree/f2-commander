@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from fsspec import filesystem
+from fsspec import AbstractFileSystem, filesystem
 from rich.syntax import Syntax
 from textual.app import ComposeResult
 from textual.reactive import reactive
@@ -18,12 +18,22 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from ..config import config
-from ..fs import breadth_first_walk
+from ..fs import breadth_first_walk, is_local_fs
+
+OTHER_TEXT_MIMETYPES = [
+    "application/json",
+    "application/xml",
+    "application/xml-dtd",
+    "application/x-sh",
+    "application/x-sql",
+    "application/x-latex",
+    "application/x-msdownload",  # .bat
+    "message/rfc822",  # .eml et co
+]
 
 
 class Preview(Static):
 
-    # TODO fsspec: either also pass fs when chaning path
     preview_path = reactive(Path.cwd().as_posix(), recompose=True)
 
     def __init__(self, *args, **kwargs):
@@ -33,8 +43,9 @@ class Preview(Static):
     def compose(self) -> ComposeResult:
         yield Static(self._format(self.preview_path))
 
-    # FIXME: push_message (in)directy to the "other" panel?
-    def on_other_panel_selected(self, path: str):
+    # FIXME: push_message (in)directy to the "other" panel only?
+    def on_other_panel_selected(self, fs: AbstractFileSystem, path: str):
+        self.fs = fs
         self.preview_path = path
 
     def watch_preview_path(self, old: str, new: str):
@@ -52,22 +63,37 @@ class Preview(Static):
                 return Syntax(code=self._head(path), lexer=Syntax.guess_lexer(path))
             except UnicodeDecodeError:
                 # file appears to be a binary file after all
-                return "Cannot preview, not a text file"
+                return "Cannot preview, probably not a text file"
         else:
-            return "Cannot preview, not a text file"
+            # TODO: leavey a user a possibility to force the preview?
+            return "Cannot preview, probably not a text file"
 
     def _is_text(self, path) -> bool | None:
         """Attempt to detect if a file is a text file. Assume that the result may be
         wrong and the file may turn out to be binary.
         An altenrative implementation would use python-magic, but it creates a
         dependency on libmagic, which is not present on all systems."""
-        try:
-            mime_type = subprocess.check_output(
-                ["file", "--brief", "--mime-type", path]
-            ).decode("utf-8")
-        except subprocess.SubprocessError:
-            mime_type = mimetypes.guess_type(path)[0] or ""
-        return mime_type.startswith("text/") if mime_type is not None else None
+
+        mime_type = None
+
+        if is_local_fs(self.fs):
+            try:
+                mime_type = subprocess.check_output(
+                    ["file", "--brief", "--mime-type", path]
+                ).decode("utf-8")
+            except subprocess.SubprocessError:
+                pass
+
+        if mime_type is None:
+            mime_type = mimetypes.guess_type(path)[0]
+
+        # NOTE: chose not to use chardet to avoid opening all remote files for a test
+        return mime_type is not None and (
+            mime_type.startswith("text/")
+            or mime_type.endswith("+xml")
+            or mime_type.endswith("+json")
+            or mime_type in OTHER_TEXT_MIMETYPES
+        )
 
     @property
     def _height(self):
