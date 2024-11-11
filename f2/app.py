@@ -12,6 +12,7 @@ import tempfile
 from functools import partial
 from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 
 import fsspec
 from fsspec.core import url_to_fs
@@ -29,6 +30,7 @@ from .config import config, set_user_has_accepted_license, user_has_accepted_lic
 from .fs import is_local_fs
 from .shell import editor, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
+from .widgets.connect import ConnectToRemoteDialog
 from .widgets.dialogs import InputDialog, StaticDialog, Style
 from .widgets.filelist import FileList
 from .widgets.panel import Panel
@@ -113,6 +115,12 @@ class F2Commander(App):
             "Togghle hidden",
             "Show or hide hidden files",
             "h",
+        ),
+        Command(
+            "connect",
+            "Connect to remote",
+            "Connect to a remote file system",
+            "ctrl+t",
         ),
         Command(
             "toggle_dirs_first",
@@ -614,13 +622,22 @@ class F2Commander(App):
     def action_go_to_bookmark(self):
         self.app.push_screen(GoToBookmarkDialog(), self._on_go_to)
 
-    # TODO fsspec: "go to path" works for simpe urls only -> need "Connect to" feature
-    # TODO fsspec: automatically use zip:// and similar when "enter"ing archives
     def action_go_to_path(self):
         self.push_screen(
             InputDialog("Jump to...", value=self.active_filelist.path, btn_ok="Go"),
             self._on_go_to,
         )
+
+    def action_connect(self):
+        def _on_conect(result: tuple[str, str, dict[str, Any]] | None):
+            if result is None:
+                return
+
+            protocol, path, fs_args = result
+            self.active_filelist.fs = fsspec.filesystem(protocol, **fs_args)
+            self.active_filelist.path = path
+
+        self.push_screen(ConnectToRemoteDialog(), _on_conect)
 
     def action_quit_confirm(self):
         def on_confirm(result: bool):

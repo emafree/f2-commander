@@ -49,12 +49,22 @@ class DirEntry:
         )
 
 
-def _find_mtime(info: dict[str, Any]):
-    value = info.get("mtime", info.get("updated"))
+def _find_mtime(info: dict[str, Any]) -> float:
+    value = None
+    for name in ("mtime", "updated", "LastModified", "last_modified"):
+        if name in info:
+            value = info.get(name)
+            break
+
     if isinstance(value, str):
-        value = datetime.fromisoformat(value)
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            value = None
+
     if isinstance(value, datetime):
         value = value.timestamp()
+
     return value
 
 
