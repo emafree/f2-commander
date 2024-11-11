@@ -23,7 +23,7 @@ from textual.reactive import reactive
 from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowDoesNotExist
 
-from f2.fs import DirEntry, DirList, is_executable, is_local_fs, list_dir
+from f2.fs import DirEntry, DirList, is_local_fs, list_dir
 
 from ..commands import Command
 from ..config import config_root

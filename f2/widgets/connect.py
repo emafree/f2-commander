@@ -17,8 +17,6 @@ from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, Checkbox, Input, Label, Select
 
-from ..config import config
-
 SUPPORTED_IMPLEMENTATIONS = [
     "abfs",
     "adl",
@@ -64,7 +62,7 @@ class ConnectToRemoteDialog(ModalScreen):
 
     protocol = reactive(None)
     doc = reactive("Select a protocol above...", recompose=True)
-    params = reactive([], recompose=True)
+    params = reactive([], recompose=True)  # type: reactive[list[inspect.Parameter]]
 
     def __init__(self):
         super().__init__()
@@ -106,7 +104,7 @@ class ConnectToRemoteDialog(ModalScreen):
             pass
 
         try:
-            type_hint = get_type_hints(cls.__init__)[param.name]
+            type_hint = get_type_hints(cls.__init__)[param.name]  # type: ignore
             return type_hint
         except (KeyError, AttributeError):
             pass
@@ -170,7 +168,7 @@ class ConnectToRemoteDialog(ModalScreen):
 
     @on(Select.Changed)
     def on_select_changed(self, event: Select.Changed) -> None:
-        self.protocol = event.value
+        self.protocol = event.value  # type: ignore
 
         try:
             self.cls = fsspec.get_filesystem_class(event.value)
@@ -187,14 +185,13 @@ class ConnectToRemoteDialog(ModalScreen):
 
     @on(Button.Pressed, "#connect")
     def on_connect_pressed(self, event: Button.Pressed) -> None:
-        param_widgets = self.query(".param")
-        protocol = self.query_one("#protcol").value
-        path = self.query_one("#path").value or "/"
+        protocol = self.query_one("#protcol").value  # type: ignore
+        path = self.query_one("#path").value or "/"  # type: ignore
         param_values = {}
         for param in self.params:
             widget = self.query_one(f"#param_{param.name}")
 
-            widget_value = widget.value
+            widget_value = widget.value  # type: ignore
             if widget_value is None or widget_value == "":
                 continue
 

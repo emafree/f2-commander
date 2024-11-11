@@ -50,22 +50,45 @@ class DirEntry:
 
 
 def _find_mtime(info: dict[str, Any]) -> float:
-    value = None
-    for name in ("mtime", "updated", "LastModified", "last_modified"):
+    # search for various mtime-like attributes:
+    fs_mtime = None
+    for name in (
+        "mtime",
+        "updated",
+        "LastModified",
+        "last_modified",
+        "modify",
+        "date_time",
+    ):
         if name in info:
-            value = info.get(name)
+            fs_mtime = info[name]
             break
 
-    if isinstance(value, str):
+    mtime: float | None = None
+
+    # try to convert the value found:
+    if isinstance(fs_mtime, str):
         try:
-            value = datetime.fromisoformat(value)
+            mtime = datetime.fromisoformat(fs_mtime).timestamp()
         except ValueError:
-            value = None
+            try:
+                mtime = datetime.strptime(fs_mtime, "%Y%m%d%H%M%S").timestamp()
+            except ValueError:
+                pass
+    elif isinstance(fs_mtime, datetime):
+        mtime = fs_mtime.timestamp()
+    elif isinstance(fs_mtime, tuple) and len(fs_mtime) == 6:
+        mtime = datetime(*fs_mtime).timestamp()
+    elif isinstance(fs_mtime, int):
+        mtime = float(fs_mtime)
+    elif isinstance(fs_mtime, float):
+        mtime = fs_mtime
 
-    if isinstance(value, datetime):
-        value = value.timestamp()
+    # if could not find or convert, use a default value:
+    if mtime is None:
+        mtime = datetime(1970, 1, 1).timestamp()
 
-    return value
+    return mtime
 
 
 def _is_hidden(info: dict[str, Any]) -> bool:
