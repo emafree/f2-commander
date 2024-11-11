@@ -16,6 +16,7 @@ from typing import Any
 
 import fsspec
 from fsspec.core import url_to_fs
+from fsspec.implementations.zip import ZipFileSystem
 from send2trash import send2trash
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -27,8 +28,8 @@ from textual.widgets import Footer
 
 from .commands import Command
 from .config import config, set_user_has_accepted_license, user_has_accepted_license
-from .fs import is_local_fs
-from .shell import editor, shell, viewer
+from .fs import is_executable, is_local_fs, is_supported_archive
+from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
 from .widgets.dialogs import InputDialog, StaticDialog, Style
@@ -259,11 +260,42 @@ class F2Commander(App):
             if hasattr(c, "on_other_panel_selected"):
                 c.on_other_panel_selected(event.fs, event.path)
 
+    @on(FileList.Open)
+    def on_file_opened(self, event: FileList.Open):
+        fs, path = event.fs, event.path
+
+        if is_local_fs(fs) and is_executable(fs.info(path)):
+            # TODO: ask to confirm to run, let choose mode (on a side or in a shell)
+            return
+
+        def _open(path: str):
+            if is_supported_archive(path):
+                self.active_filelist.fs = ZipFileSystem(path, mode="r")
+                self.active_filelist.path = ""
+            else:
+                open_cmd = native_open()
+                if open_cmd is not None:
+                    with self.app.suspend():
+                        subprocess.run(open_cmd + [path])
+                else:
+                    # TODO: alert the user
+                    pass
+
+        def _open_temp(path: str):
+            _open(path)
+            os.unlink(path)
+
+        if is_local_fs(fs):
+            _open(path)
+        else:
+            self._download(fs, path, cont_fn=_open_temp)
+
     def _download(self, fs, path, cont_fn):
         def on_download(result: bool):
             if result:
                 _, tmp_file_path = tempfile.mkstemp(
-                    prefix=f"{posixpath.basename(path)}."
+                    prefix=f"{posixpath.basename(path)}.",
+                    suffix=posixpath.splitext(path)[1],
                 )
                 fs.get(path, tmp_file_path)
                 cont_fn(tmp_file_path)

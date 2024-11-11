@@ -135,6 +135,17 @@ class FileList(Static):
         def contol(self) -> "FileList":
             return self.file_list
 
+    class Open(Message):
+        def __init__(self, fs: AbstractFileSystem, path: str, file_list: "FileList"):
+            self.fs = fs
+            self.path = path
+            self.file_list = file_list
+            super().__init__()
+
+        @property
+        def contol(self) -> "FileList":
+            return self.file_list
+
     path = reactive(Path.cwd().as_posix())
 
     sort_options = reactive(SortOptions("name"))
@@ -455,15 +466,9 @@ class FileList(Static):
         if self.fs.isdir(self.cursor_path):
             pass  # already handled by on_data_table_row_selected
         elif self.fs.isfile(self.cursor_path):
-            if is_executable(self.fs.info(self.cursor_path)):
-                # TODO: ask to confirm to run, let choose mode (on a side or in a shell)
-                pass
-            else:
-                # TODO fsspec: download remote files
-                open_cmd = native_open()
-                if open_cmd is not None:
-                    with self.app.suspend():
-                        subprocess.run(open_cmd + [self.cursor_path])
+            self.post_message(
+                self.Open(fs=self.fs, path=self.cursor_path, file_list=self)
+            )
 
     def action_open_in_os_file_manager(self):
         if not is_local_fs(self.fs):

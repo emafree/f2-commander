@@ -126,6 +126,8 @@ def list_dir(
         up.name = ".."
         entries.append(up)
 
+    # FIXME: allow ".." when at the root of an archive
+
     for child in fs.ls(path, detail=True):
         entry = DirEntry.from_info(fs, child)
         if glob_expression and not fnmatch.fnmatch(entry.name, glob_expression):
@@ -166,3 +168,19 @@ def breadth_first_walk(
 
 def is_local_fs(fs: AbstractFileSystem) -> bool:
     return "file" in fs.protocol
+
+
+def is_supported_archive(path: str) -> bool:
+    # FIXME: should this use mime types of attempt opening a file?
+    supported_extensions = (
+        ".zip",
+        # TODO: enable libarchive
+        # ".tar",
+        # ".tar.gz",
+        # ".tgz",
+        # ".tar.bz2",
+        # ".tbz2",
+        # ".tar.xz",
+        # ".txz",
+    )
+    return posixpath.splitext(path)[1].lower() in supported_extensions

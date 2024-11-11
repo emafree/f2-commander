@@ -112,19 +112,58 @@ Features:
 
  - "File systems" support
 
+   Remote file systems support is in "preview" mode. Most functionality is available,
+   but bugs are possible.
+
+   To connect to a remote file system users need to install additional packages that
+   are indicated in the "Connect" dialog upon selecting a protocol.
+
+   Checked below are the file systems that are extensively tested and considered
+   stable. Unchecked are those that can be used, but are not tested.
+
    - [x] "Local" OS file system
+   - [ ] Azure Blob Storage, Azure DataLake
    - [ ] AWS S3
    - [ ] GCP GCS
+   - [ ] Oracle Cloud Object Storage, OCI Data Lake
+   - [ ] OSS (Alibaba Cloud)
+   - [ ] IMB Box Content Cloud
+   - [ ] DVC
+   - [ ] LakeFS
+   - [ ] Databricks File System
+   - [ ] Git (brows a local Git repository by branch, tag, etc.)
+   - [ ] GitHub
+   - [ ] HDFS
+   - [ ] Hugging Face Hub
    - [ ] Dropbox
-   - [ ] FTP, FTPS, SFTP
-   - [ ] ... show must go on ...
+   - [ ] Google Drive
+   - [ ] FTP/FTPS
+   - [ ] SFTP
+   - [ ] HTTP/HTTPS
+   - [ ] SMB
+   - [ ] WebDAV
+   - [ ] ... more are possible with plugins ...
 
    - [ ] Predefined "remote" file systems can be bookmarked
 
  - Archival and compression support
 
-   - [ ] ZIP (read, create, update)
-   - [ ] ... and more ...
+   - [x] ZIP (read-only)
+   - [ ] ZIP (create, update)
+   - [ ] TAR (read-only)
+   - [ ] XAR (read-only)
+   - [ ] LHA/LZH (read-only)
+   - [ ] ISO 9660 (optical disc) (read-only)
+   - [ ] cpio (read-only)
+   - [ ] mtree (read-only)
+   - [ ] shar (read-only)
+   - [ ] ar (read-only)
+   - [ ] pax (read-only)
+   - [ ] RAR (read-only)
+   - [ ] MS CAB (read-only)
+   - [ ] 7-Zip (read-only)
+   - [ ] WARC (read-only)
+   - [ ] ... more are possible with plugins ...
 
  - Documentation
 
