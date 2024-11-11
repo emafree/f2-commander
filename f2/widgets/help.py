@@ -70,6 +70,20 @@ HELP = f"""
    Quit the shell to return back to the F2 Commander (e.g., `Ctrl+d` or type and
    execute `exit`).
 
+### Remote file systems (FTP, S3, etc.)
+
+Remote file systems support is in "preview" mode. Most functionality is available,
+but bugs are possible.
+
+To connect to a remote file system users need to install additional packages that
+are indicated in the "Connect" dialog upon selecting a protocol.
+
+"Connect" dialog is in its "alpha" version, exposing the underlying connector
+configuration in a very generic way. Refer to the documentation of the installed
+additional packages for more information.
+
+ - `Ctrl+t`: connect to a remote file system
+
 ### Panels
 
 F2 Commander comes with these panel types:
