@@ -463,7 +463,7 @@ class FileList(Static):
         # "open" is handled separately from "table.row_selected" to distinguish
         # between "enter" and mouse click (avoid navigation and running
         # apps on mouse clickd)
-        if self.fs.isdir(self.cursor_path):
+        if self.fs.isdir(posixpath.normpath(self.cursor_path)):
             pass  # already handled by on_data_table_row_selected
         elif self.fs.isfile(self.cursor_path):
             self.post_message(

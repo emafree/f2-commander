@@ -39,7 +39,7 @@ class DirEntry:
     def from_info(cls, fs: AbstractFileSystem, info: dict[str, Any]) -> "DirEntry":
         return DirEntry(
             name=posixpath.basename(info["name"]),
-            size=int(info.get("size", 0)),
+            size=int(info.get("size") or 0),
             mtime=_find_mtime(info),
             is_dir=info.get("type") == "directory",
             is_file=info.get("type") == "file",
