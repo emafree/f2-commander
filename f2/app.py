@@ -633,23 +633,37 @@ class F2Commander(App):
         else:
             self.push_screen(StaticDialog.error("Error", "No shell found!"))
 
-    def _on_go_to(self, url: str | None):
-        if url is None:
+    def _on_go_to(self, location: str | dict | None):
+        if location is None:
             return
 
-        try:
-            fs, path = url_to_fs(url)
-            is_dir = fs.isdir(path)
-            err_msg = f"{url} is not a directory" if not is_dir else None
-        except Exception as err:
-            is_dir = False
-            err_msg = str(err)
+        if isinstance(location, str):
+            try:
+                fs, path = url_to_fs(location)
+                is_dir = fs.isdir(path)
+                err_msg = f"{location} is not a directory" if not is_dir else None
+            except Exception as err:
+                is_dir = False
+                err_msg = str(err)
 
-        if is_dir:
-            self.active_filelist.fs = fs
-            self.active_filelist.path = path
-        else:
-            self.push_screen(StaticDialog.info(f"Cannot navigate to {url}", err_msg))
+            if is_dir:
+                self.active_filelist.fs = fs
+                self.active_filelist.path = path
+            else:
+                self.push_screen(
+                    StaticDialog.info(f"Cannot navigate to {location}", err_msg)
+                )
+
+        if isinstance(location, dict):
+            protocol = location["protocol"]
+            path = location.get("path")
+            conf = {
+                k: v
+                for k, v in location.items()
+                if k not in ("display_name", "protocol", "path")
+            }
+            self.active_filelist.fs = fsspec.filesystem(protocol, **conf)
+            self.active_filelist.path = path or "/"
 
     def action_go_to_bookmark(self):
         self.app.push_screen(GoToBookmarkDialog(), self._on_go_to)

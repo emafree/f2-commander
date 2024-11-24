@@ -65,6 +65,7 @@ class Config:
             platformdirs.user_music_dir(),
         ]
     )
+    file_systems = InstantConfigAttr([])
 
 
 config = Config()
