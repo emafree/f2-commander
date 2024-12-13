@@ -29,7 +29,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-textual = ">=0.76,<1"
+textual = ">=0.76,<0.77"
 humanize = "^4.10"
 send2trash = "^1.8.3"
 platformdirs = "^4.2.2"
