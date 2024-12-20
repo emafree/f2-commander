@@ -480,6 +480,7 @@ class FileList(Static):
         if open_cmd is not None:
             with self.app.suspend():
                 subprocess.run(open_cmd + [self.path])
+            self.app.refresh()
 
     def action_navigate_to_config(self):
         self.fs = filesystem("file")

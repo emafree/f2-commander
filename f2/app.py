@@ -296,6 +296,7 @@ class F2Commander(App):
                 if open_cmd is not None:
                     with self.app.suspend():
                         subprocess.run(open_cmd + [path])
+                    self.app.refresh()
                 else:
                     # TODO: alert the user
                     pass
