@@ -29,23 +29,23 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-textual = ">=0.76,<0.77"
-humanize = "^4.10"
-send2trash = "^1.8.3"
-platformdirs = "^4.2.2"
-python-dotenv = "^1.0.1"
-fsspec = "^2024.10.0"
+textual = "1.0.0"
+humanize = "4.11.0"
+send2trash = "1.8.3"
+platformdirs = "4.3.6"
+python-dotenv = "1.0.1"
+fsspec = "2024.10.0"
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
 isort = "^5.13"
-flake8 = "^7.0"
-mypy = "^1.8"
-pytest = "^8.0"
-textual-dev = "^1.5"
-black = "^24.1.1"
+flake8 = "^7.1"
+mypy = "^1.13"
+pytest = "^8.3"
+textual-dev = "^1.7"
+black = "24.10.0"
 
 [tool.poetry.scripts]
 f2 = "f2.main:main"

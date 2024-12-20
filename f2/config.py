@@ -55,6 +55,7 @@ class Config:
     dirs_first = InstantConfigAttr(True)
     order_case_sensitive = InstantConfigAttr(True)
     show_hidden = InstantConfigAttr(False)
+    theme = InstantConfigAttr("textual-dark")
     bookmarks = InstantConfigAttr(
         [
             str(Path.home()),

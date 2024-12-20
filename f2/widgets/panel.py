@@ -47,7 +47,6 @@ class Panel(Static):
                 options=PANEL_OPTIONS,
                 value=self.panel_type,
                 allow_blank=False,
-                prompt=f"Select the {self.display_name} panel",
             ),
             on_select,
         )

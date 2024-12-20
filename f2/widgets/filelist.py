@@ -221,6 +221,7 @@ class FileList(Static):
             style = "underline"
 
         if e.name in self.selection:
+            # FIXME: use $accent color (depends on use CSS above?)
             style += " #fff04d italic"
 
         return style
@@ -437,7 +438,8 @@ class FileList(Static):
             new_sort_options = SortOptions(key, not reverse)
         self.sort_options = new_sort_options
 
-    def action_find(self):
+    @work
+    async def action_find(self):
         def on_find(value):
             if value.strip() == "" or value.strip() == "*":
                 self.glob = None

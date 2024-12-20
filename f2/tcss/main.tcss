@@ -9,7 +9,7 @@
 Panel {
   width: 1fr;
   height: 1fr;
-  border: $accent double;
+  border: $primary double;
   border-title-align: center;
   border-title-style: bold;
 }
@@ -18,18 +18,11 @@ FileList DataTable {
   width: 100%;
 }
 
-FileList.focused {
-  border-title-color: $secondary;
+CommandPalette {
+  #--container {
+    margin: 1 1 0 1;
+  }
 }
-
-FileList .datatable--cursor {
-  background: $primary;
-}
-
-FileList.focused .datatable--cursor {
-  background: $secondary;
-}
-
 
 /* Dialogs */
 
@@ -40,7 +33,7 @@ ModalScreen {
 #dialog {
     width: 50%;
     height: auto;
-    border: $accent panel;
+    border: $primary panel;
     background: $surface-lighten-1;
 }
 
@@ -53,7 +46,7 @@ ModalScreen {
 }
 
 #dialog.info {
-    border: $accent panel;
+    border: $primary panel;
 }
 
 #dialog.success {

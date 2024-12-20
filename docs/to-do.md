@@ -1,7 +1,5 @@
 In (somewhat) no particular order:
 
-- Upgrade and fix dependencies versions, set a reminder to update and
-  re-release periodically
 - Automate the tests
 - CI
 - Vulnerability scanning and automated dependencies upgrade

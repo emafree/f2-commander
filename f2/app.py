@@ -17,6 +17,7 @@ from typing import Any
 import fsspec
 from fsspec.core import url_to_fs
 from fsspec.implementations.zip import ZipFileSystem
+from rich.text import Text
 from send2trash import send2trash
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -32,7 +33,7 @@ from .fs import is_executable, is_local_fs, is_supported_archive
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
-from .widgets.dialogs import InputDialog, StaticDialog, Style
+from .widgets.dialogs import InputDialog, SelectDialog, StaticDialog, Style
 from .widgets.filelist import FileList
 from .widgets.panel import Panel
 
@@ -45,11 +46,12 @@ class F2AppCommands(Provider):
         flist_commands = [(flist, cmd) for cmd in flist.BINDINGS_AND_COMMANDS]
         return app_commands + flist_commands
 
-    def _fmt_help(self, cmd):
+    def _fmt_name(self, cmd):
+        t = Text(cmd.name)
         if cmd.binding_key is not None:
-            return f"[{cmd.binding_key}]\n{cmd.description}\n"
-        else:
-            return f"{cmd.description}\n"
+            t.append(" ")
+            t.append(f"[{cmd.binding_key}]", style="dim")
+        return t
 
     async def search(self, query: str):
         matcher = self.matcher(query)
@@ -60,15 +62,15 @@ class F2AppCommands(Provider):
                     score,
                     matcher.highlight(cmd.name),
                     partial(node.run_action, cmd.action),
-                    help=self._fmt_help(cmd),
+                    help=f"{cmd.description}\n",
                 )
 
     async def discover(self):
         for node, cmd in self.all_commands:
             yield DiscoveryHit(
-                cmd.name,
+                self._fmt_name(cmd),
                 partial(node.run_action, cmd.action),
-                help=self._fmt_help(cmd),
+                help=f"{cmd.description}\n",
             )
 
 
@@ -136,9 +138,9 @@ class F2Commander(App):
             None,
         ),
         Command(
-            "toggle_dark",
-            "Toggle theme",
-            "Switch between dark and light themes",
+            "change_theme",
+            "Change theme",
+            "Change the theme (colors)",
             None,
         ),
         Command(
@@ -157,9 +159,7 @@ class F2Commander(App):
         Binding("d", "delete", "Delete"),
         Binding("ctrl+n", "mkdir", "New dir"),
         Binding("x", "shell", "Shell"),
-        # FIXME: following exists only for discoverability, remove when textual does it
-        Binding("ctrl+\\", "do_nothing", "Command Palette"),
-        Binding("q", "quit_confirm", "Quit"),
+        Binding("q", "quit", "Quit"),
     ] + [
         Binding(cmd.binding_key, cmd.action, cmd.description, show=False)
         for cmd in BINDINGS_AND_COMMANDS
@@ -184,6 +184,22 @@ class F2Commander(App):
         footer.ctrl_to_caret = False
         footer.upper_case_keys = True
         yield footer
+
+    @work
+    async def action_change_theme(self):
+        def on_select(theme: str):
+            self.theme = theme
+            config.theme = theme
+
+        self.push_screen(
+            SelectDialog(
+                title=f"Change the theme to:",
+                options=sorted([(t, t) for t in self.available_themes.keys()]),
+                value=self.theme,
+                allow_blank=False,
+            ),
+            on_select,
+        )
 
     def action_toggle_hidden(self):
         self.show_hidden = not self.show_hidden
@@ -224,12 +240,14 @@ class F2Commander(App):
         self.inactive_filelist.fs = self.active_filelist.fs
         self.inactive_filelist.path = self.active_filelist.path
 
-    def action_change_left_panel(self):
+    @work
+    async def action_change_left_panel(self):
         # TODO: after swap this "right"
         # FIXME: there is no left/right at all? Panel A and panel B instead?
         self.panel_left.action_change_panel()
 
-    def action_change_right_panel(self):
+    @work
+    async def action_change_right_panel(self):
         self.panel_right.action_change_panel()
 
     @property
@@ -251,6 +269,7 @@ class F2Commander(App):
 
     @work
     async def on_mount(self, event):
+        self.theme = config.theme
         if not user_has_accepted_license():
             self.action_about()
 
@@ -342,6 +361,7 @@ class F2Commander(App):
             if viewer_cmd is not None:
                 with self.app.suspend():
                     completed_process = subprocess.run(viewer_cmd + [path])
+                self.refresh()
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Viewer exited with an error ({exit_code})"
@@ -370,6 +390,7 @@ class F2Commander(App):
             if editor_cmd is not None:
                 with self.app.suspend():
                     completed_process = subprocess.run(editor_cmd + [path])
+                self.refresh()
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Editor exited with an error ({exit_code})"
@@ -624,6 +645,7 @@ class F2Commander(App):
         if shell_cmd is not None:
             with self.app.suspend():
                 completed_process = subprocess.run(shell_cmd, cwd=cwd)
+            self.refresh()
             self.active_filelist.update_listing()
             self.inactive_filelist.update_listing()
             exit_code = completed_process.returncode
@@ -665,16 +687,19 @@ class F2Commander(App):
             self.active_filelist.fs = fsspec.filesystem(protocol, **conf)
             self.active_filelist.path = path or "/"
 
-    def action_go_to_bookmark(self):
+    @work
+    async def action_go_to_bookmark(self):
         self.app.push_screen(GoToBookmarkDialog(), self._on_go_to)
 
-    def action_go_to_path(self):
+    @work
+    async def action_go_to_path(self):
         self.push_screen(
             InputDialog("Jump to...", value=self.active_filelist.path, btn_ok="Go"),
             self._on_go_to,
         )
 
-    def action_connect(self):
+    @work
+    async def action_connect(self):
         def _on_conect(result: tuple[str, str, dict[str, Any]] | None):
             if result is None:
                 return
@@ -685,14 +710,15 @@ class F2Commander(App):
 
         self.push_screen(ConnectToRemoteDialog(), _on_conect)
 
-    def action_quit_confirm(self):
+    def action_quit(self):
         def on_confirm(result: bool):
             if result:
                 self.exit()
 
         self.push_screen(StaticDialog("Quit?"), on_confirm)
 
-    def action_about(self):
+    @work
+    async def action_about(self):
         def on_dismiss(result):
             set_user_has_accepted_license()
 
@@ -706,6 +732,3 @@ class F2Commander(App):
 
     def action_help(self):
         self.panel_right.panel_type = "help"
-
-    def action_do_nothing(self):
-        pass

@@ -53,8 +53,7 @@ work-in-progress as indicated below.
  - [x] Rich and flexible file listing (file attributes, ordering options,
        filtering with glob, hidden files toggle, compute directory size,
        and more)
- - [ ] Quick fuzzy search
- - [ ] Recursive file search
+ - [ ] Fuzzy search (type to search), Recursive file search, Find in files
  - [x] Integration with native OS applications (open a directory in a file
        manager, open a file with a default program)
  - [x] Basic file and directory manipulation (copy, move, move to trash,

@@ -49,6 +49,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [ ] Detect external changes and update file listing when possible
    - [x] Open current location in the OS default file manager
    - [ ] Search (like `find` in this dir recursively)
+   - [ ] Find in files (text search, in a directory, recursive option)
 
  - File and directory manipulation
 
