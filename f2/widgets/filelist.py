@@ -176,6 +176,7 @@ class FileList(Static):
         self.table.add_column("Modified", key="mtime")
 
     def on_resize(self):
+        # FIXME: this event normally received size, virtual_size, and container_size
         self.update_listing()
 
     def selected_paths(self) -> list[str]:

@@ -29,6 +29,7 @@ from textual.widgets import Footer
 
 from .commands import Command
 from .config import config, set_user_has_accepted_license, user_has_accepted_license
+from .errors import with_error_handler
 from .fs import is_executable, is_local_fs, is_supported_archive
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
@@ -587,6 +588,7 @@ class F2Commander(App):
         fs = self.active_filelist.fs
         paths = self.active_filelist.selected_paths()
 
+        @with_error_handler(self)
         def on_delete(result: bool):
             if result:
                 for path in paths:

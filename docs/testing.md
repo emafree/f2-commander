@@ -350,7 +350,6 @@ directory" renames the file or a directory.
  - delete it, confirm,
  - an error message is shown to the user indicating that the file does not
    exist.
-   **KNOWN BUG**: commander fails with a stack trace
 
 **TODO**: Remote delete behavior (no Trash, hard delete).
 
