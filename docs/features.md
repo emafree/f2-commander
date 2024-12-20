@@ -15,7 +15,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [x] Preview panel
    - [ ] File Info panel
    - [x] Drop to shell (command line) temporarily
-   - [ ] Theming. "Modern" and "Retro" themes out of the box.
+   - [ ] "Modern" and "Retro" color themes, ability to customize colors.
 
  - Configuration
 

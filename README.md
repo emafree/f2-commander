@@ -85,8 +85,7 @@ work-in-progress as indicated below.
    > Support for other formats is coming soon.
 
  - [ ] Create and update ZIP files
- - [ ] A set of classic themes (colors)
- - [ ] Customizable themes
+ - [x] Multiple color themes
  - [x] Built-in help
  - [ ] User manual
  - [ ] Hopefully, a polished up user experience that you'd normally expect from
