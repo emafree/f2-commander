@@ -179,11 +179,7 @@ class F2Commander(App):
         with self.panels_container:
             yield self.panel_left
             yield self.panel_right
-        footer = Footer()
-        footer.compact = True
-        footer.ctrl_to_caret = False
-        footer.upper_case_keys = True
-        yield footer
+        yield Footer()
 
     @work
     async def action_change_theme(self):
@@ -193,7 +189,7 @@ class F2Commander(App):
 
         self.push_screen(
             SelectDialog(
-                title=f"Change the theme to:",
+                title="Change the theme to:",
                 options=sorted([(t, t) for t in self.available_themes.keys()]),
                 value=self.theme,
                 allow_blank=False,
