@@ -228,6 +228,10 @@ class F2Commander(App):
         self.swapped = not self.swapped
 
     def watch_swapped(self, old: bool, new: bool):
+        # TODO: After the swap the "left" panel will on the right and vice versa.
+        #       Maybe there is no left/right at all? Panel A and panel B instead?
+        #       Or handle the swap by changing root paths (won't swap other types
+        #       of panels, though)?
         if new:
             self.panels_container.move_child(self.panel_left, after=self.panel_right)
         else:
@@ -239,8 +243,6 @@ class F2Commander(App):
 
     @work
     async def action_change_left_panel(self):
-        # TODO: after swap this "right"
-        # FIXME: there is no left/right at all? Panel A and panel B instead?
         self.panel_left.action_change_panel()
 
     @work
@@ -308,6 +310,8 @@ class F2Commander(App):
             self._download(fs, path, cont_fn=_open_temp)
 
     def _download(self, fs, path, cont_fn):
+
+        @with_error_handler(self)
         def on_download(result: bool):
             if result:
                 _, tmp_file_path = tempfile.mkstemp(
@@ -332,6 +336,8 @@ class F2Commander(App):
         )
 
     def _upload(self, fs, local_path, remote_path, cont_fn):
+
+        @with_error_handler(self)
         def on_upload(result: bool):
             if result:
                 fs.put(local_path, remote_path)
@@ -409,6 +415,8 @@ class F2Commander(App):
             self._download(fs, src, cont_fn=_edit_and_upload)
 
     def _confirm_download_upload(self, cont_fn, *args, **kwargs):
+
+        @with_error_handler(self)
         def on_upload(result: bool):
             if result:
                 cont_fn(*args, **kwargs)
@@ -426,8 +434,6 @@ class F2Commander(App):
             ),
             on_upload,
         )
-
-    # TODO: handle overwrites and non-existing target directories (in copy and move)
 
     def action_copy(self):
         src_fs = self.active_filelist.fs
@@ -484,6 +490,7 @@ class F2Commander(App):
             self.active_filelist.update_listing()
             self.inactive_filelist.update_listing()
 
+        @with_error_handler(self)
         def on_copy(result: str | None):
             if result is not None:
                 if (
@@ -563,6 +570,7 @@ class F2Commander(App):
             self.active_filelist.update_listing()
             self.inactive_filelist.update_listing()
 
+        @with_error_handler(self)
         def on_move(result: str | None):
             if result is not None:
                 if (
@@ -625,6 +633,7 @@ class F2Commander(App):
         fs = self.active_filelist.fs
         src = self.active_filelist.path
 
+        @with_error_handler(self)
         def on_mkdir(result: str | None):
             if result is not None:
                 new_dir_path = posixpath.join(src, result)
@@ -699,6 +708,8 @@ class F2Commander(App):
 
     @work
     async def action_connect(self):
+
+        @with_error_handler(self)
         def _on_conect(result: tuple[str, str, dict[str, Any]] | None):
             if result is None:
                 return

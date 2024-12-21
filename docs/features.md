@@ -43,6 +43,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [x] Navigate to path (enter path, with auto-completion)
    - [x] Configurable bookmarks. Predefined bookmarks to typical desktop directories
          like Downloads, Documents, etc.
+         - [ ] Configurable bookmark hotkeys
    - [ ] "Show the Trash" and "Empty the Trash" actions
    - [x] "Same location" and "Swap panels" actions
    - [ ] CWD follows user selection
@@ -55,6 +56,8 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
 
    - [x] Basic operations like copy, move, move to trash, etc.
      - [x] Confirmation dialogs and user inputs (destination path, etc.)
+     - [ ] Copy/Move to a non-existing dir to `mkdir -p` upon confirmation
+     - [ ] Copy same file in same dir to create a copy with a suffix
      - [x] Multiple file selection
            - [x] With spacebar
            - [x] Shift+j/k(up/down) selection

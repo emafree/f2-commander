@@ -132,6 +132,13 @@ a) my intent is to continue the development of the features outlined above, but
 b) my intent is to keep F2 Commander stable, but future versions may include
    backward-incompatible changes where that would seem pragmatic.
 
+## Special Thanks
+
+F2 Commander is made with [Textual](https://github.com/textualize/textual/)
+framework, [fsspec](https://github.com/fsspec/filesystem_spec) and other great
+packages. Many features are made possible or stem directly from these, and I
+encourgae F2 Commander users to support them.
+
 ## Contributions
 
 Bug reports, feature requests and pull requests are welcome.

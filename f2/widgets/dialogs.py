@@ -11,7 +11,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Select
+from textual.widgets import Button, Input, Label, Select, Static
 
 
 class Style(Enum):
@@ -57,7 +57,7 @@ class StaticDialog(ModalScreen[bool]):
         with Vertical(id="dialog", classes=f"{self.style.value} {user_classes}"):
             yield Label(self.title, id="title")  # type: ignore
             if self.message is not None:
-                yield Label(self.message, id="message")
+                yield Static(self.message, id="message")  # Static wraps long text
             with Horizontal(id="buttons"):
                 if self.btn_ok is not None:
                     yield Button(self.btn_ok, variant="primary", id="ok")

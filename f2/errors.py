@@ -1,6 +1,6 @@
 from functools import wraps
 
-from .widgets.dialogs import StaticDialog, Style
+from .widgets.dialogs import StaticDialog
 
 
 def with_error_handler(app):
@@ -15,13 +15,7 @@ def with_error_handler(app):
             try:
                 return fn(*args, **kwargs)
             except Exception as e:
-                app.push_screen(
-                    StaticDialog.error(
-                        "Error",
-                        f"An unexpected error occurred: {e}",
-                    ),
-                    on_dismiss,
-                )
+                app.push_screen(StaticDialog.error("Error", str(e)), on_dismiss)
                 return None
 
         return impl

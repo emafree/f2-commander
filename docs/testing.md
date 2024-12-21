@@ -211,12 +211,9 @@ be kept unchanged, unless it included any of the hidden file.
    - Redo the same test **with** a trailing slash, same effect is expected.
 
  - Copy a file to a new directory:
-   **KNOWN BUG**: fails with an exception
    - Copy a file,
    - change the target path to include a non-existing directory,
-   - a confirmation dialog is shown to the user to confirm the directory
-     creation,
-   - the directory is created and the file is copied only if confirmed.
+   - an error message is shown to the the user.
 
  - Overwrite a file on copy:
    **KNOWN BUG**: currently saliently overwrites the target file
@@ -225,13 +222,10 @@ be kept unchanged, unless it included any of the hidden file.
    - the file is copied only if confirmed.
 
  - Copy a file in same directory:
-   **KNOWN BUG**: currently fails with a stack trace
    - Select same directory on left and right,
    - copy a file,
    - submit the default path,
-   - file is copied with a suffix ` (1)`,
-   - directory listing is updated (both left and right) and shows a new file.
-   - Redo same test again, a new file copy is created with suffix ` (2)`.
+   - an error message is shown to the the user.
 
  - Copy a **directory** between different source and target directories:
    Same scenario as for the file copy, directory is copied recursively with all
@@ -271,9 +265,7 @@ be kept unchanged, unless it included any of the hidden file.
      copy of the file that was deleted in the source directory.
 
  - Copy a directory in same directory:
-   **KNOWN BUG**: currently fails with a stack trace
-   Same scenario as for the file copy, directory is copied recursively with all
-   of its content.
+   Same scenario as for the file copy
 
  - Copy a selection:
    - Select multiple entries: directories and files (at least 1 directory and 1
@@ -288,10 +280,9 @@ be kept unchanged, unless it included any of the hidden file.
      file copy)
 
  - Copy error:
-   **KNOWN BUG**: Commander exits with a stack trace
-   - Create a read-only directory (`chmod -r`),
+   - Create a read-only directory (`chmod -w`),
    - copy a file into it,
-   - a warning message is shown to the user.
+   - a error message is shown to the user.
 
 **TODO**: Copy a non-existing file, directory (was removed outside)
 
@@ -314,17 +305,16 @@ directory" renames the file or a directory.
    slash and creates a file with same name.
  - Moving a file to a new directory and a new file name ignores the new file
    name and creates a file with the same name as a new directory name.
- - Moving a file a non-existing new directory fails with a stack trace.
- - Overwrite on move: fails with a stack trace.
+ - Moving a file to a non-existing directory fails with an erorr message. (To
+   be confirmed).
+ - Overwrite on move: shows an error message.
  - Moving a directory a to a new one with a trailing slash in the name renames
    the directory being moved, instead of creating a new directory and moving
    the source into it (same when multiple intermediate levels: they are
    created, but last directory name is used as a new target directory name,
    regardless of a trailing slash).
  - Moving a directory to a location where a directory with the same name
-   already exists fails with a stack trace (instead of merge).
- - Move errors (e.g., copy to read-only directory) cause the Commander to fail
-   with a stack trace.
+   already exists shows an erorr message (instead of merge).
 
 **TODO**: Remote move behavior: download, upload and download-upload.
 
@@ -534,8 +524,6 @@ configuration may break the app (error on startup).
 
 
 ## Other known bugs
-
- - Uncaught errors result in a stack trace and error exit.
 
  - Default viewer, editor, shell and "open" programs are mostly macOS-specific,
    choices are too rigid. Make sure defaults work on clean macOS and Linux
