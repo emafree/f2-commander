@@ -170,6 +170,9 @@ class FileList(Static):
         yield self.table
 
     def on_mount(self) -> None:
+        self._add_columns()
+
+    def _add_columns(self):
         # " ⬍" in "Name ⬍" will be removed after the initial sort
         self.table.add_column("Name ⬍", key="name")
         self.table.add_column("Size", key="size")
@@ -354,7 +357,8 @@ class FileList(Static):
     #
 
     def _update_table(self, ls: DirList):
-        self.table.clear()
+        self.table.clear(columns=True)
+        self._add_columns()
         for child in ls.entries:
             style = self._row_style(child)
             self.table.add_row(
