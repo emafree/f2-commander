@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from functools import wraps
 
 from .widgets.dialogs import StaticDialog
@@ -21,3 +22,12 @@ def with_error_handler(app):
         return impl
 
     return wrapper
+
+
+@asynccontextmanager
+async def error_handler_async(app):
+    try:
+        yield
+    except Exception as e:
+        await app.push_screen_wait(StaticDialog.error("Error", str(e)))
+        app.refresh()

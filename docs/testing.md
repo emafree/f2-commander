@@ -213,7 +213,6 @@ be kept unchanged, unless it included any of the hidden file.
    - an error message is shown to the the user.
 
  - Overwrite a file on copy:
-   **KNOWN BUG**: currently saliently overwrites the target file
    - Copy a file to an existing file,
    - a confirmation dialog is shown to the user to confirm the overwrite,
    - the file is copied only if confirmed.
@@ -248,15 +247,12 @@ be kept unchanged, unless it included any of the hidden file.
      into it.
 
  - Merge a directory on copy:
-   **KNOWN BUG**: currently saliently overwrites all target files
    - Copy a directory to some target directory; perform the copy;
    - Add a file to the source directory,
    - delete another file in the source directory,
    - modify another file in the source directory,
    - and copy it again to the same target directory;
-   - a confirmation dialog asks a user to confirm the merge,
-   - copy continues only if the user confirms;
-   - another confirmation dialog asks to overwrite target files if they exist,
+   - a confirmation dialog asks a user to confirm the merge and overwrite,
    - copy continues only if the user confirms;
    - target directory contains a new file, a modified file, and also contains a
      copy of the file that was deleted in the source directory.
@@ -273,15 +269,11 @@ be kept unchanged, unless it included any of the hidden file.
      individually (one by one).
    - Test same with only directories selected (2 directories).
    - Test same with only files selected (2 files).
-     **KNOWN BUG**: fails to create a new directory (same as for the single
-     file copy)
 
  - Copy error:
    - Create a read-only directory (`chmod -w`),
    - copy a file into it,
    - a error message is shown to the user.
-
-**TODO**: Copy a non-existing file, directory (was removed outside)
 
 **TODO**: Test different target paths, including relative and absolute path
 (starting with `./`, `../`, `/`).

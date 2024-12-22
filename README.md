@@ -92,7 +92,7 @@ And, hopefully, a polished up user experience that you'd normally expect from
 a robust file manager. Feel free to submit any issues to make F2 Commander
 even better!
 
-See also a list of known bugs in the [validation scenarios documentation](docs/testing.md).
+See also a [list of known bugs](docs/testing.md).
 
 ## Development environment
 

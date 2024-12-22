@@ -189,6 +189,92 @@ def breadth_first_walk(
         dirs_to_walk = next_dirs_to_walk
 
 
+def copy(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: str):
+    """Copy file or directory in the same or between different file systems"""
+    if src_fs == dst_fs:  # same file system (both local or both same remote)
+        src_fs.copy(
+            src,
+            dst,
+            recursive=src_fs.isdir(src),
+            on_error="raise",
+        )
+    elif is_local_fs(src_fs):  # upload to remote
+        dst_fs.put(
+            src,
+            dst,
+            recursive=src_fs.isdir(src),
+            on_error="raise",
+        )
+    elif is_local_fs(dst_fs):  # download from remote
+        src_fs.get(
+            src,
+            dst,
+            recursive=src_fs.isdir(src),
+            on_error="raise",
+        )
+    else:  # distinct remote file systems: download and upload
+        tmp_dir_path = tempfile.mkdtemp(prefix=f"{posixpath.basename(src)}.")
+        try:
+            src_fs.get(
+                src,
+                tmp_dir_path + "/",
+                recursive=src_fs.isdir(src),
+                on_error="raise",
+            )
+            dst_fs.put(
+                posixpath.join(tmp_dir_path, os.path.basename(src)),
+                dst,
+                recursive=src_fs.isdir(src),
+                on_error="raise",
+            )
+        finally:
+            shutil.rmtree(tmp_dir_path)
+
+
+def move(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: str):
+    if src_fs == dst_fs:  # same file system (both local or both same remote)
+        src_fs.move(
+            src,
+            dst,
+            recursive=src_fs.isdir(src),
+            on_error="raise",
+        )
+    elif is_local_fs(src_fs):  # upload to remote
+        dst_fs.put(
+            src,
+            dst,
+            recursive=src_fs.isdir(src),
+            on_error="raise",
+        )
+        src_fs.rm(src, recursive=src_fs.isdir(src))
+    elif is_local_fs(dst_fs):  # download from remote
+        src_fs.get(
+            src,
+            dst,
+            recursive=src_fs.isdir(src),
+            on_error="raise",
+        )
+        src_fs.rm(src, recursive=src_fs.isdir(src))
+    else:  # distinct remote file systems: download and upload
+        tmp_dir_path = tempfile.mkdtemp(prefix=f"{posixpath.basename(src)}.")
+        try:
+            src_fs.get(
+                src,
+                tmp_dir_path + "/",
+                recursive=src_fs.isdir(src),
+                on_error="raise",
+            )
+            dst_fs.put(
+                posixpath.join(tmp_dir_path, os.path.basename(src)),
+                dst,
+                recursive=src_fs.isdir(src),
+                on_error="raise",
+            )
+            src_fs.rm(src, recursive=src_fs.isdir(src))
+        finally:
+            shutil.rmtree(tmp_dir_path)
+
+
 def is_local_fs(fs: AbstractFileSystem) -> bool:
     return "file" in fs.protocol
 

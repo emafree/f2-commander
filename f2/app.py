@@ -29,8 +29,8 @@ from textual.widgets import Footer
 
 from .commands import Command
 from .config import config, set_user_has_accepted_license, user_has_accepted_license
-from .errors import with_error_handler
-from .fs import is_executable, is_local_fs, is_supported_archive
+from .errors import error_handler_async, with_error_handler
+from .fs import copy, is_executable, is_local_fs, is_supported_archive, move
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
@@ -414,103 +414,88 @@ class F2Commander(App):
         else:
             self._download(fs, src, cont_fn=_edit_and_upload)
 
-    def _confirm_download_upload(self, cont_fn, *args, **kwargs):
-
-        @with_error_handler(self)
-        def on_upload(result: bool):
-            if result:
-                cont_fn(*args, **kwargs)
-
-        msg = (
-            "Source and destination are in different remote locations.\n"
-            "Continue to download, and then upload?"
-        )
-        self.app.push_screen(
-            StaticDialog(
-                title="Download, and then upload?",
-                message=msg,
-                btn_ok="Yes",
-                btn_cancel="No",
-            ),
-            on_upload,
-        )
-
-    def action_copy(self):
+    @work
+    async def action_copy(self):
         src_fs = self.active_filelist.fs
         sources = self.active_filelist.selected_paths()
 
         dst_fs = self.inactive_filelist.fs
         destination = self.inactive_filelist.path
 
-        def _copy_one(src, dst):
-            if src_fs == dst_fs:
-                src_fs.copy(
-                    src,
-                    dst,
-                    recursive=src_fs.isdir(src),
-                    on_error="raise",
-                )
-            elif is_local_fs(src_fs):
-                dst_fs.put(
-                    src,
-                    dst,
-                    recursive=src_fs.isdir(src),
-                    on_error="raise",
-                )
-            elif is_local_fs(dst_fs):
-                src_fs.get(
-                    src,
-                    dst,
-                    recursive=src_fs.isdir(src),
-                    on_error="raise",
-                )
-            else:  # distinct remote file systems
-                tmp_dir_path = tempfile.mkdtemp(prefix=f"{posixpath.basename(src)}.")
-                try:
-                    src_fs.get(
-                        src,
-                        tmp_dir_path + "/",
-                        recursive=src_fs.isdir(src),
-                        on_error="raise",
-                    )
-                    dst_fs.put(
-                        posixpath.join(tmp_dir_path, os.path.basename(src)),
-                        dst,
-                        recursive=src_fs.isdir(src),
-                        on_error="raise",
-                    )
-                finally:
-                    shutil.rmtree(tmp_dir_path)
-
-        def _copy_all(dst):
-            for src in sources:
-                _copy_one(src, dst)
-
-            self.active_filelist.reset_selection()
-            self.active_filelist.update_listing()
-            self.inactive_filelist.update_listing()
-
-        @with_error_handler(self)
-        def on_copy(result: str | None):
-            if result is not None:
-                if (
-                    src_fs != dst_fs
-                    and not is_local_fs(src_fs)
-                    and not is_local_fs(dst_fs)
-                ):
-                    self._confirm_download_upload(_copy_all, result)
-                else:
-                    _copy_all(result)
-
         msg = (
             f"Copy {posixpath.basename(sources[0])} to"
             if len(sources) == 1
             else f"Copy {len(sources)} selected entries to"
         )
-        self.push_screen(
-            InputDialog(title=msg, value=destination, btn_ok="Copy"),
-            on_copy,
+        dst = await self.push_screen_wait(
+            InputDialog(title=msg, value=destination, btn_ok="Copy")
         )
+        if dst is None:  # user cancelled
+            return
+
+        if src_fs != dst_fs and not is_local_fs(src_fs) and not is_local_fs(dst_fs):
+            if not await self._confirm_download_upload():
+                return
+
+        for src in sources:
+            await self._copy_one(src_fs, src, dst_fs, dst)
+
+        self.active_filelist.reset_selection()
+        self.active_filelist.update_listing()
+        self.inactive_filelist.update_listing()
+
+    async def _confirm_download_upload(self):
+        msg = (
+            "Source and destination are in different remote locations.\n"
+            "Continue to download, and then upload?"
+        )
+        return await self.app.push_screen_wait(
+            StaticDialog(
+                title="Download, and then upload?",
+                message=msg,
+                btn_ok="Yes",
+                btn_cancel="No",
+            )
+        )
+
+    async def _copy_one(self, src_fs, src, dst_fs, dst):
+        if src_fs.isfile(src):
+            dst_path = (
+                dst
+                if dst_fs.isfile(dst)
+                else posixpath.join(dst, posixpath.basename(src))
+            )
+            if dst_fs.exists(dst_path):
+                msg = f"{dst_path} already exists. Overwrite?"
+                if not await self.push_screen_wait(
+                    StaticDialog(
+                        title="Overwrite?",
+                        message=msg,
+                        btn_ok="Overwrite",
+                        style=Style.WARNING,
+                    )
+                ):
+                    return
+
+        elif src_fs.isdir(src):
+            dst_path = posixpath.join(dst, posixpath.basename(src))
+            if dst_fs.exists(dst_path):
+                msg = (
+                    f"{dst_path} already exists.\n"
+                    "Merge directories and overwrite existing files?"
+                )
+                if not await self.push_screen_wait(
+                    StaticDialog(
+                        title="Merge and overwrite?",
+                        message=msg,
+                        btn_ok="Merge",
+                        style=Style.WARNING,
+                    )
+                ):
+                    return
+
+        async with error_handler_async(self):
+            return copy(src_fs, src, dst_fs, dst)
 
     def action_move(self):
         src_fs = self.active_filelist.fs
@@ -519,52 +504,9 @@ class F2Commander(App):
         dst_fs = self.inactive_filelist.fs
         destination = self.inactive_filelist.path
 
-        def _move_one(src, dst):
-            if src_fs == dst_fs:
-                src_fs.move(
-                    src,
-                    dst,
-                    recursive=src_fs.isdir(src),
-                    on_error="raise",
-                )
-            elif is_local_fs(src_fs):
-                dst_fs.put(
-                    src,
-                    dst,
-                    recursive=src_fs.isdir(src),
-                    on_error="raise",
-                )
-                src_fs.rm(src, recursive=src_fs.isdir(src))
-            elif is_local_fs(dst_fs):
-                src_fs.get(
-                    src,
-                    dst,
-                    recursive=src_fs.isdir(src),
-                    on_error="raise",
-                )
-                src_fs.rm(src, recursive=src_fs.isdir(src))
-            else:  # distinct remote file systems
-                tmp_dir_path = tempfile.mkdtemp(prefix=f"{posixpath.basename(src)}.")
-                try:
-                    src_fs.get(
-                        src,
-                        tmp_dir_path + "/",
-                        recursive=src_fs.isdir(src),
-                        on_error="raise",
-                    )
-                    dst_fs.put(
-                        posixpath.join(tmp_dir_path, os.path.basename(src)),
-                        dst,
-                        recursive=src_fs.isdir(src),
-                        on_error="raise",
-                    )
-                    src_fs.rm(src, recursive=src_fs.isdir(src))
-                finally:
-                    shutil.rmtree(tmp_dir_path)
-
         def _move_all(dst):
             for src in sources:
-                _move_one(src, dst)
+                move(src_fs, src, dst_fs, dst)
 
             self.active_filelist.reset_selection()
             self.active_filelist.update_listing()
