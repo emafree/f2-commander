@@ -420,8 +420,6 @@ state, including ordering, etc.).
  - Preview panel instantly shows a file or a directory preview,
  - navigating in the file listing on the left updates the preview with a
    content of a highlighted entry.
-   **KNOWN BUG**: Preview panel show a current directory preview when first
-   opened, not the current highlighted entry.
 
  - Text file preview:
    - Preview a text file with no syntax (e.g., raw text file)

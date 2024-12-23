@@ -148,16 +148,16 @@ class FileList(Static):
 
     path = reactive(Path.cwd().as_posix())
 
-    sort_options = reactive(SortOptions("name"))
-    show_hidden = reactive(False)
-    dirs_first = reactive(False)
-    order_case_sensitive = reactive(False)
+    sort_options = reactive(SortOptions("name"), init=False)
+    show_hidden = reactive(False, init=False)
+    dirs_first = reactive(False, init=False)
+    order_case_sensitive = reactive(False, init=False)
     # FIXME: cursor_path only makes sense with the fs instance; users just "need" to
     #        know this fact; ideally need an anstraction for fs+path, or generate
     #        events for changes in cursor_path, or just expose a get_cursor_path()
     cursor_path = reactive(Path.cwd().as_posix())
     active = reactive(False)
-    glob = reactive(None)
+    glob = reactive(None, init=False)
     # FIXME: same as for cursor_path above
     selection: set[str] = set()
 
@@ -173,14 +173,16 @@ class FileList(Static):
         self._add_columns()
 
     def _add_columns(self):
-        # " ⬍" in "Name ⬍" will be removed after the initial sort
-        self.table.add_column("Name ⬍", key="name")
+        self.table.add_column("Name", key="name")
         self.table.add_column("Size", key="size")
         self.table.add_column("Modified", key="mtime")
 
-    def on_resize(self):
-        # FIXME: this event normally received size, virtual_size, and container_size
+    @work
+    async def on_resize(self):
+        self.table.clear(columns=True)
+        self._add_columns()
         self.update_listing()
+        self.watch_sort_options(None, self.sort_options)
 
     def selected_paths(self) -> list[str]:
         if len(self.selection) > 0:
@@ -357,8 +359,7 @@ class FileList(Static):
     #
 
     def _update_table(self, ls: DirList):
-        self.table.clear(columns=True)
-        self._add_columns()
+        self.table.clear()
         for child in ls.entries:
             style = self._row_style(child)
             self.table.add_row(
@@ -423,8 +424,9 @@ class FileList(Static):
     def watch_sort_options(self, old: SortOptions, new: SortOptions):
         self.update_listing()
         # remove sort label from the previously sorted column:
-        prev_sort_col = self.table.columns[old.key]  # type: ignore
-        prev_sort_col.label = prev_sort_col.label[:-2]
+        if old is not None:
+            prev_sort_col = self.table.columns[old.key]  # type: ignore
+            prev_sort_col.label = prev_sort_col.label[:-2]
         # add the new sort label:
         new_sort_col = self.table.columns[new.key]  # type: ignore
         direction = "⬆" if new.reverse else "⬇"

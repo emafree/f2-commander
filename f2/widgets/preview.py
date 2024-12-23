@@ -43,6 +43,9 @@ class Preview(Static):
     def compose(self) -> ComposeResult:
         yield Static(self._format(self.preview_path))
 
+    def on_mount(self):
+        self.preview_path = self.app.active_filelist.cursor_path
+
     # FIXME: push_message (in)directy to the "other" panel only?
     def on_other_panel_selected(self, fs: AbstractFileSystem, path: str):
         self.fs = fs
@@ -88,6 +91,8 @@ class Preview(Static):
             mime_type = mimetypes.guess_type(path)[0]
 
         # NOTE: chose not to use chardet to avoid opening all remote files for a test
+        # (having said that, may use chardet in the local fs, and fallbak to the
+        # mimetype check in the remote fs)
         return mime_type is not None and (
             mime_type.startswith("text/")
             or mime_type.endswith("+xml")

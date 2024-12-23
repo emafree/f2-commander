@@ -254,11 +254,19 @@ class F2Commander(App):
     # FIXME: left/right are not necessarily FileList; make Optional and handle None
     @property
     def active_filelist(self) -> FileList:
-        return self.left if self.left.active else self.right
+        return (
+            self.left
+            if isinstance(self.left, FileList) and self.left.active
+            else self.right
+        )
 
     @property
     def inactive_filelist(self) -> FileList:
-        return self.right if self.left.active else self.left
+        return (
+            self.right
+            if isinstance(self.left, FileList) and self.left.active
+            else self.left
+        )
 
     @work
     async def on_mount(self, event):
