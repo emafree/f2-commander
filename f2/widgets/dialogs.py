@@ -106,18 +106,17 @@ class InputDialog(ModalScreen[str | None]):
         btn_ok: str = "OK",
         btn_cancel: str = "Cancel",
         style: Style = Style.INFO,
-        *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.title = title
         self.value = value
         self.btn_ok = btn_ok
         self.btn_cancel = btn_cancel
         self.style = style
+        self.input = Input(self.value, id="value", **kwargs)
 
     def compose(self) -> ComposeResult:
-        self.input = Input(self.value, id="value")
         with Vertical(id="dialog", classes=f"large {self.style.value}"):
             yield Label(self.title, id="title")  # type: ignore
             yield self.input

@@ -285,33 +285,19 @@ be kept unchanged, unless it included any of the hidden file.
 14. Move
 
 Same test scenarios as Copy, but with "move" behavior: source file or directory
-does not exist after move, file listing is updated to reflect it. "Move in same
-directory" renames the file or a directory.
+does not exist after move, file listing is updated to reflect it.
 
-**KNOWN BUGS**:
-
- - Moving a file to a new directory (path ends with trailing slash) ignores the
-   slash and creates a file with same name.
- - Moving a file to a new directory and a new file name ignores the new file
-   name and creates a file with the same name as a new directory name.
- - Moving a file to a non-existing directory fails with an erorr message. (To
-   be confirmed).
- - Overwrite on move: shows an error message.
- - Moving a directory a to a new one with a trailing slash in the name renames
-   the directory being moved, instead of creating a new directory and moving
-   the source into it (same when multiple intermediate levels: they are
-   created, but last directory name is used as a new target directory name,
-   regardless of a trailing slash).
- - Moving a directory to a location where a directory with the same name
-   already exists shows an erorr message (instead of merge).
+Some differences:
+ - Moving a directory has no "overwrite" option
 
 **TODO**: Remote move behavior: download, upload and download-upload.
 
 15. Delete
 
- - Highlight a file, Delete (footer action) or `d` opens confirmation dialog,
+ - Highlight a file, Delete (footer action) or `D` (`Shift+d`) opens
+   confirmation dialog,
  - select "Cancel", dialog closes, nothing happens.
- - Highlight a file, `d`,
+ - Highlight a file, `D`,
  - select "Delete",
  - the file is moved to system Trash (Recycle Bin),
  - and it is not present in the directory listing.
@@ -331,6 +317,9 @@ directory" renames the file or a directory.
    exist.
 
 **TODO**: Remote delete behavior (no Trash, hard delete).
+
+**KNOWN BUG**: If same dir is open in both panels, only active file listing is
+refrehsed after a delete.
 
 16. New directory
 

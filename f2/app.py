@@ -6,7 +6,6 @@
 
 import os
 import posixpath
-import shutil
 import subprocess
 import tempfile
 from functools import partial
@@ -157,7 +156,7 @@ class F2Commander(App):
         Binding("e", "edit", "Edit"),
         Binding("c", "copy", "Copy"),
         Binding("m", "move", "Move"),
-        Binding("d", "delete", "Delete"),
+        Binding("D", "delete", "Delete"),
         Binding("ctrl+n", "mkdir", "New dir"),
         Binding("x", "shell", "Shell"),
         Binding("q", "quit", "Quit"),
@@ -422,13 +421,18 @@ class F2Commander(App):
         dst_fs = self.inactive_filelist.fs
         destination = self.inactive_filelist.path
 
+        if len(sources) == 0:
+            return
+
         msg = (
             f"Copy {posixpath.basename(sources[0])} to"
             if len(sources) == 1
             else f"Copy {len(sources)} selected entries to"
         )
         dst = await self.push_screen_wait(
-            InputDialog(title=msg, value=destination, btn_ok="Copy")
+            InputDialog(
+                title=msg, value=destination, btn_ok="Copy", select_on_focus=False
+            )
         )
         if dst is None:  # user cancelled
             return
@@ -461,11 +465,11 @@ class F2Commander(App):
     async def _copy_one(self, src_fs, src, dst_fs, dst):
         if src_fs.isfile(src):
             dst_path = (
-                dst
-                if dst_fs.isfile(dst)
-                else posixpath.join(dst, posixpath.basename(src))
+                posixpath.join(dst, posixpath.basename(src))
+                if dst_fs.isdir(dst)
+                else dst
             )
-            if dst_fs.exists(dst_path):
+            if dst_fs.isfile(dst_path):
                 msg = f"{dst_path} already exists. Overwrite?"
                 if not await self.push_screen_wait(
                     StaticDialog(
@@ -478,7 +482,11 @@ class F2Commander(App):
                     return
 
         elif src_fs.isdir(src):
-            dst_path = posixpath.join(dst, posixpath.basename(src))
+            dst_path = (
+                posixpath.join(dst, posixpath.basename(src))
+                if dst_fs.isdir(dst)
+                else dst
+            )
             if dst_fs.exists(dst_path):
                 msg = (
                     f"{dst_path} already exists.\n"
@@ -497,46 +505,77 @@ class F2Commander(App):
         async with error_handler_async(self):
             return copy(src_fs, src, dst_fs, dst)
 
-    def action_move(self):
+    @work
+    async def action_move(self):
         src_fs = self.active_filelist.fs
         sources = self.active_filelist.selected_paths()
 
         dst_fs = self.inactive_filelist.fs
         destination = self.inactive_filelist.path
 
-        def _move_all(dst):
-            for src in sources:
-                move(src_fs, src, dst_fs, dst)
-
-            self.active_filelist.reset_selection()
-            self.active_filelist.update_listing()
-            self.inactive_filelist.update_listing()
-
-        @with_error_handler(self)
-        def on_move(result: str | None):
-            if result is not None:
-                if (
-                    src_fs != dst_fs
-                    and not is_local_fs(src_fs)
-                    and not is_local_fs(dst_fs)
-                ):
-                    self._confirm_download_upload(_move_all, result)
-                else:
-                    _move_all(result)
+        if len(sources) == 0:
+            return
 
         msg = (
             f"Move {posixpath.basename(sources[0])} to"
             if len(sources) == 1
             else f"Move {len(sources)} selected entries to"
         )
-        self.push_screen(
-            InputDialog(title=msg, value=destination, btn_ok="Move"),
-            on_move,
+        dst = await self.push_screen_wait(
+            InputDialog(
+                title=msg, value=destination, btn_ok="Move", select_on_focus=False
+            )
         )
+        if dst is None:  # user cancelled
+            return
+
+        if src_fs != dst_fs and not is_local_fs(src_fs) and not is_local_fs(dst_fs):
+            if not await self._confirm_download_upload():
+                return
+
+        for src in sources:
+            await self._move_one(src_fs, src, dst_fs, dst)
+
+        self.active_filelist.reset_selection()
+        self.active_filelist.update_listing()
+        self.inactive_filelist.update_listing()
+
+    async def _move_one(self, src_fs, src, dst_fs, dst):
+        if src_fs.isfile(src):
+            dst_path = (
+                posixpath.join(dst, posixpath.basename(src))
+                if dst_fs.isdir(dst)
+                else dst
+            )
+            if dst_fs.isfile(dst_path):
+                dst = dst_path  # CAUTION: overriding with exact **file** path
+                # ^^^^^^ : if not done, eventually shutil.move raises an error
+                # (try shutil.move('a', 'b') where 'b' is a dir with a file 'a')
+                msg = f"{dst_path} already exists. Overwrite?"
+                if not await self.push_screen_wait(
+                    StaticDialog(
+                        title="Overwrite?",
+                        message=msg,
+                        btn_ok="Overwrite",
+                        style=Style.WARNING,
+                    )
+                ):
+                    return
+
+        # CAUTION:
+        # Move has no merge for directories intentionally
+        # It is considered way too ambiguous and, if necessary,
+        # can be achieved otherwise (copy, then delete).
+
+        async with error_handler_async(self):
+            return move(src_fs, src, dst_fs, dst)
 
     def action_delete(self):
         fs = self.active_filelist.fs
         paths = self.active_filelist.selected_paths()
+
+        if len(paths) == 0:
+            return
 
         @with_error_handler(self)
         def on_delete(result: bool):
