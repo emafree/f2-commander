@@ -4,6 +4,7 @@ In (somewhat) no particular order:
 - CI
 - Vulnerability scanning and automated dependencies upgrade
 - Distribute with Homebrew, Flatpak, and maybe more package managers
+- Home site
 - Record a video demo and tutorials
 - Read a no-BS UX book/guide (for better user experience, not user
   exploitation) and apply it

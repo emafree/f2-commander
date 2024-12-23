@@ -19,6 +19,8 @@ It also lists all known bugs (see the **KNOWN BUG** tags).
  - Footer includes common file actions, bound keys, and is clickable with mouse.
    - Known limitation: except for the "Command Palette" footer item.
 
+**KNOWN BUG**: no scroll bar in long listings
+
 2. Basic navigation
 
  - `j`/`k` and `up`/`down` move the cursor one row at a time.
@@ -275,6 +277,8 @@ be kept unchanged, unless it included any of the hidden file.
    - copy a file into it,
    - a error message is shown to the user.
 
+ - Copy '..' entry, nothing happens (copy dialog does not open).
+
 **TODO**: Test different target paths, including relative and absolute path
 (starting with `./`, `../`, `/`).
 
@@ -315,6 +319,8 @@ Some differences:
  - delete it, confirm,
  - an error message is shown to the user indicating that the file does not
    exist.
+
+ - Delete '..' entry, nothing happens (copy dialog does not open).
 
 **TODO**: Remote delete behavior (no Trash, hard delete).
 

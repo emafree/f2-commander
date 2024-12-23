@@ -102,12 +102,6 @@ class F2Commander(App):
             "ctrl+r",
         ),
         Command(
-            "go_to_bookmark",
-            "Go to a bookmark",
-            "Navigate to a bookmarked location",
-            "b",
-        ),
-        Command(
             "go_to_path",
             "Enter path",
             "Enter a path to jump to it",
@@ -152,12 +146,13 @@ class F2Commander(App):
     ]
     BINDINGS = [
         Binding("?", "help", "Help"),
+        Binding("b", "go_to_bookmark", "Bookmarks"),
         Binding("v", "view", "View"),
         Binding("e", "edit", "Edit"),
         Binding("c", "copy", "Copy"),
         Binding("m", "move", "Move"),
         Binding("D", "delete", "Delete"),
-        Binding("ctrl+n", "mkdir", "New dir"),
+        Binding("ctrl+n", "mkdir", "MkDir"),
         Binding("x", "shell", "Shell"),
         Binding("q", "quit", "Quit"),
     ] + [
@@ -678,14 +673,17 @@ class F2Commander(App):
 
     @work
     async def action_go_to_bookmark(self):
-        self.app.push_screen(GoToBookmarkDialog(), self._on_go_to)
+        location = await self.app.push_screen_wait(GoToBookmarkDialog())
+        async with error_handler_async(self):
+            self._on_go_to(location)
 
     @work
     async def action_go_to_path(self):
-        self.push_screen(
-            InputDialog("Jump to...", value=self.active_filelist.path, btn_ok="Go"),
-            self._on_go_to,
+        location = await self.push_screen_wait(
+            InputDialog("Jump to...", value=self.active_filelist.path, btn_ok="Go")
         )
+        async with error_handler_async(self):
+            self._on_go_to(location)
 
     @work
     async def action_connect(self):

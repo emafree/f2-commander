@@ -9,20 +9,33 @@
 Panel {
   width: 1fr;
   height: 1fr;
-  border: $primary double;
+  border: $border double;
   border-title-align: center;
   border-title-style: bold;
 }
 
 FileList DataTable {
   width: 100%;
+  background: $background;
+
+  &:focus {
+    /* don't higlight activate table background (default is 5% in DataTable): */
+    background-tint: $foreground 0%;
+
+    /* highlight activate table header more (default is 5% in DataTable): */
+    & > .datatable--header {
+        background-tint: $foreground 20%;
+    }
+  }
 }
 
 CommandPalette {
+  /* this margin leaves the overalayed panel borders visible: */
   #--container {
     margin: 1 1 0 1;
   }
 }
+
 
 /* Dialogs */
 

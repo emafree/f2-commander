@@ -16,6 +16,9 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [ ] File Info panel
    - [x] Drop to shell (command line) temporarily
    - [ ] "Modern" and "Retro" color themes, ability to customize colors.
+   - [ ] Mouse click on an empty space below the file list to switch to that panel.
+   - [ ] Welcome screen on the first launch (select theme and keybindgins).
+   - [ ] Receive dragged and dropped files
 
  - Configuration
 
@@ -32,6 +35,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
 
    - [x] Basic file and directory info: entry names, human-readable size,
          last modification time, show and follow symlinks, etc.
+         - [ ] Highlight broken links
    - [x] Vim-like (up/down j/k g/G ctrl+f/d/b/u) navigation
    - [x] Navigate "up" (with backspace or with the ".." entry)
    - [x] Order entries by name, size, time (last modification time)
@@ -65,13 +69,17 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
      - [ ] Progress bar for long operations
      - [ ] Option to delete files (as opposed to moving to trash)
    - [x] View and edit files using user default viewer and editor
+         - [ ] File-type view (and preview?) tools (e.g., why not preview
+               Parquet files, etc.)
    - [x] "Open" files with a default associated program (e.g., view PDF, etc.)
    - [ ] Run programs (run executable files)
    - [x] Create a new directory
-   - [ ] Create a new file
+         - [ ] Move cursor to the new directory
+   - [ ] Create a new file (and move cursor to the new file)
    - [x] "Show/hide hidden files" toggle
    - [ ] Create and modify symlinks, show broken, and other symlink tasks
    - [x] Compute directory size on Ctrl+Space
+   - [ ] Context menu in the file list ("right click" / "Cmd+click")
 
  - "File systems" support
 
@@ -108,6 +116,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [ ] ... more are possible with plugins ...
 
    - [ ] Predefined "remote" file systems can be bookmarked
+   - [ ] Autoamtically download missing packages (with user confirmation)
 
  - Archival and compression support
 
@@ -148,6 +157,7 @@ User experience and app behavior:
  - Navigation
 
    - [x] Save user's choises between restarts (hidden files toggle, dirs first, etc.)
+     - [ ] Show current value (on or off) in the Command Palette item description
    - [ ] Consistent cursor positioning
      - [x] ... on the source directory when navigating "up"
      - [ ] ... on the source link when navigating back from symlink
