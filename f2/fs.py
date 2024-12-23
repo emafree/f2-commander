@@ -7,7 +7,9 @@
 import fnmatch
 import os
 import posixpath
+import shutil
 import stat
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
