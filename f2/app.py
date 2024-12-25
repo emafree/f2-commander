@@ -46,8 +46,8 @@ class F2AppCommands(Provider):
         flist_commands = [(flist, cmd) for cmd in flist.BINDINGS_AND_COMMANDS]
         return app_commands + flist_commands
 
-    def _fmt_name(self, cmd):
-        t = Text(cmd.name)
+    def _fmt_name(self, cmd, text: Text | None = None):
+        t = text or Text(cmd.name)
         if cmd.binding_key is not None:
             t.append(" ")
             t.append(f"[{cmd.binding_key}]", style="dim")
@@ -60,7 +60,7 @@ class F2AppCommands(Provider):
             if score > 0:
                 yield Hit(
                     score,
-                    matcher.highlight(cmd.name),
+                    self._fmt_name(cmd, matcher.highlight(cmd.name)),
                     partial(node.run_action, cmd.action),
                     help=f"{cmd.description}\n",
                 )
@@ -787,16 +787,6 @@ class F2Commander(App):
 
         self.push_screen(StaticDialog("Quit?"), on_confirm)
 
-    def on_descendant_blur(self, event):
-        pass
-        # raise Exception("WORKS IN APP!")
-        # if event.descendant == self.search_input:
-        #    self.dismiss_search()
-
-    def on_descendant_focus(self, event):
-        pass
-        # raise Exception("WORKS IN APP!")
-
     @work
     async def action_about(self):
         def on_dismiss(result):
@@ -812,10 +802,3 @@ class F2Commander(App):
 
     def action_help(self):
         self.panel_right.panel_type = "help"
-
-    # def check_action(self, action: str, parameters):
-    #     # disable all bindings in search mode:
-    #     # TODO: disbale in all widgets (only app is missing?)
-    #     if self.search_mode is not None:
-    #         return False
-    #     return True

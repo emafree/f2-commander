@@ -96,7 +96,7 @@ class FileList(Static):
         ),
         Command(
             "search",
-            "Search",
+            "Incremental search",
             "Incremental search in the file list, with fuzzy matching",
             "/",
         ),
