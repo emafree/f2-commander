@@ -27,7 +27,7 @@ HELP = f"""
 ### Interface
 
  - `Tab`: switch focus between the left and right panels
- - `Ctrl+\\`: open the command palette
+ - `Ctrl+p`: open the command palette
  - `Ctrl+w`: swap the panels
  - `Ctrl+s`: open the same location in the other panel
  - `?`: show this help
@@ -37,13 +37,13 @@ HELP = f"""
 ### Navigation
 
  - `j`/`k` and `up`/`down`: navigate the list up and down one entry at a time
- - `g`: navigate to the *top* of the list
- - `G`: navigate to the *bottom* of the list
+ - `g`: navigate to the top of the list
+ - `G`: navigate to the bottom of the list
  - `Ctrl+f`/`Ctrl+b`, `Ctrl+d`/`Ctrl+u`, `Page Up`/`Page Down`: paginate the list
  - `Enter`: enter the directory or run the default program associated with a
     file type under cursor
  - `Backspace` or `Enter` on the `..` entry: navigate up in a directory tree
- - `b`: go to a bookmarked location
+ - `b`: go to a bookmarked location (see also "Bookmarks configuration" below)
  - `Ctrl+g`: enter a path to jump to
  - `R`: refresh the file listing
  - `o`: open the current location in the deafult OS file manager
@@ -57,9 +57,30 @@ HELP = f"""
  - `f`: filter the displayed entries with a glob expression
  - `Ctrl+Space`: calculate the size of the directory under cursor
 
-### Selection
+### File and directory manipulation
 
- - `Space`/`Shift`+navigation: select/unselect an entry under the cursor
+Most tasks for file and directory manipulation are available in the footer menu.
+More tasks are available in the Command Palette (`Ctrl+p`).
+
+According key bindgings use mnemonics for the actions:
+
+  - `c`: copy
+  - `m`: move
+  - etc.
+
+Few excpetions are:
+
+  - `D`: delete (requires upper case `D` to avoid accidental deletions)
+
+Some alternative actions are available with `Shift` key:
+
+  - `Shift-M`: rename a file or directory in place
+
+### Multiple file and directory selection
+
+Some actions, such as copy, move and delete, can be performed on multiple entries.
+
+ - `Space` or `Shift`+navigation: select/unselect an entry under the cursor
  - `-`: clear selection
  - `+`: select all displayed entries
  - `*`: invert selection
@@ -90,7 +111,7 @@ F2 Commander comes with these panel types:
 
  - Files: default panel type, for file system discovery and manipulation
  - Preview: shows exceprts of the text files selected in the (Files) other panel
- - Help: also invoked with `?` binding, a user manual
+ - Help: also invoked with `?` binding, a user manual (this one)
 
 Use `Ctrl+e` and `Ctrl+r` to change the type of the panel on the left and right
 respectively.
@@ -101,6 +122,12 @@ These toggles can be found in Command Palette:
 
  - Show directories first, on/off
  - Case-sensitive name ordering, on/off
+
+### Themes (colors)
+
+To change the theme, run the "Change theme" command from the Command Palette.
+
+Themes are built-in and are not customizable in this version of the application.
 
 ## Configuration
 

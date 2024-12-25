@@ -1,5 +1,7 @@
 In (somewhat) no particular order:
 
+- Release for Python 3.8 .. 3.13
+- Setup trusted publishing for future PyPI uploads
 - Automate the tests
 - CI
 - Vulnerability scanning and automated dependencies upgrade

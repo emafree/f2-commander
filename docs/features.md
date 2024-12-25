@@ -15,10 +15,13 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [x] Preview panel
    - [ ] File Info panel
    - [x] Drop to shell (command line) temporarily
+         - [ ] A simple one-time command input (e.g., an input box on `X`)
    - [ ] "Modern" and "Retro" color themes, ability to customize colors.
    - [ ] Mouse click on an empty space below the file list to switch to that panel.
    - [ ] Welcome screen on the first launch (select theme and keybindgins).
    - [ ] Receive dragged and dropped files
+   - [ ] Multiple screens (e.g., open multiple editors, viewers; switch b/w those).
+   - [ ] Message line (hints about wrong keys, simple confirmation messages, etc.)
 
  - Configuration
 
@@ -73,9 +76,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
                Parquet files, etc.)
    - [x] "Open" files with a default associated program (e.g., view PDF, etc.)
    - [ ] Run programs (run executable files)
-   - [x] Create a new directory
-         - [ ] Move cursor to the new directory
-   - [ ] Create a new file (and move cursor to the new file)
+   - [x] Create a new directory / new file
    - [x] "Show/hide hidden files" toggle
    - [ ] Create and modify symlinks, show broken, and other symlink tasks
    - [x] Compute directory size on Ctrl+Space

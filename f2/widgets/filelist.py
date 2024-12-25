@@ -102,7 +102,7 @@ class FileList(Static):
             "calc_dir_size",
             "Calculate directory size",
             "Calculate the size of the directory tree",
-            "ctrl+@",  # FIXME: is it same as ctrl+space really?
+            "ctrl+@",  # this is `ctrl+space`
         ),
         Command(
             "navigate_to_config",
@@ -209,26 +209,33 @@ class FileList(Static):
         else:
             self.add_selection(name)
 
+    def scroll_to(self, name: str):
+        try:
+            idx = self.table.get_row_index(name)
+            self.table.cursor_coordinate = (idx, 0)  # type: ignore
+        except RowDoesNotExist:
+            pass
+
     #
     # FORMATTING:
     #
 
     def _row_style(self, e: DirEntry) -> str:
         # FIXME: use CSS instead
+        theme = self.app.available_themes[self.app.theme]
         style = ""
 
         if e.is_dir:
             style = "bold"
         elif e.is_executable:
-            style = "#ab0000"
+            style = theme.error
         elif e.is_hidden:
             style = "dim"
         elif e.is_link:
             style = "underline"
 
         if e.name in self.selection:
-            # FIXME: use $accent color (depends on use CSS above?)
-            style += " #fff04d italic"
+            style += f" {theme.accent} italic"
 
         return style
 
@@ -382,11 +389,7 @@ class FileList(Static):
         self._update_table(ls)
         # if stil in same dir as before, restore the cursor position
         if self.path == posixpath.dirname(old_cursor_path):
-            try:
-                idx = self.table.get_row_index(posixpath.basename(old_cursor_path))
-                self.table.cursor_coordinate = (idx, 0)  # type: ignore
-            except RowDoesNotExist:
-                pass
+            self.scroll_to(posixpath.basename(old_cursor_path))
         # update list border with some information about the directory:
         total_size_str = naturalsize(ls.total_size)
         if is_local_fs(self.fs):
@@ -404,11 +407,7 @@ class FileList(Static):
         self.update_listing()
         # if navigated "up", select source dir in the new list:
         if new_path == posixpath.dirname(old_path):
-            try:
-                idx = self.table.get_row_index(posixpath.basename(old_path))
-                self.table.cursor_coordinate = (idx, 0)  # type: ignore
-            except RowDoesNotExist:
-                pass
+            self.scroll_to(posixpath.basename(old_path))
 
     def watch_show_hidden(self, old: bool, new: bool):
         if not new:  # if some files will be not shown anymore, better be safe:
@@ -448,6 +447,9 @@ class FileList(Static):
     @work
     async def action_find(self):
         def on_find(value):
+            if value is None:
+                return
+
             if value.strip() == "" or value.strip() == "*":
                 self.glob = None
             else:
@@ -502,10 +504,8 @@ class FileList(Static):
 
         cursor_name = posixpath.basename(self.cursor_path)
 
-        # FIXME: reuse self._row_style
-        style = "bold"
-        if cursor_name in self.selection:
-            style += " #fff04d italic"
+        entry = DirEntry.from_info(self.fs, self.fs.info(path))
+        style = self._row_style(entry)
 
         # show a placeholder and move the cursor at once:
         placeholder = Text("...", style=style, justify="right")

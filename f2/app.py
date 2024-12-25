@@ -114,6 +114,18 @@ class F2Commander(App):
             "h",
         ),
         Command(
+            "rename",
+            "Rename",
+            "Rename a file or a directory",
+            "M",
+        ),
+        Command(
+            "mkfile",
+            "Create a file",
+            "Create a new file (touch)",
+            None,
+        ),
+        Command(
             "connect",
             "Connect to remote",
             "Connect to a remote file system",
@@ -121,7 +133,7 @@ class F2Commander(App):
         ),
         Command(
             "toggle_dirs_first",
-            "Toggle dirs first",
+            "Toggle directories first",
             "Show directories first or ordered among files",
             None,
         ),
@@ -573,6 +585,40 @@ class F2Commander(App):
         async with error_handler_async(self):
             return move(src_fs, src, dst_fs, dst)
 
+    @work
+    async def action_rename(self):
+        src_fs = self.active_filelist.fs
+
+        sources = self.active_filelist.selected_paths()
+        if len(sources) != 1:
+            return
+
+        src = sources[0]
+        name = posixpath.basename(src)
+
+        dst = await self.push_screen_wait(
+            InputDialog(title=f"Rename {name} to", value=name, btn_ok="Move")
+        )
+        if dst is None:  # user cancelled
+            return
+
+        # FIXME: only allow simple names in the first place (validation)
+        if posixpath.basename(dst) != dst:
+            self.push_screen(
+                StaticDialog.error(
+                    "Error",
+                    "Only simple names are allowed for renaming. Otherwise, use Move.",
+                )
+            )
+            return
+
+        async with error_handler_async(self):
+            src_fs.mv(src, posixpath.join(posixpath.dirname(src), dst))
+
+        self.active_filelist.reset_selection()
+        self.active_filelist.update_listing()
+        self.active_filelist.scroll_to(posixpath.basename(dst))
+
     def action_delete(self):
         fs = self.active_filelist.fs
         paths = self.active_filelist.selected_paths()
@@ -613,21 +659,44 @@ class F2Commander(App):
             on_delete,
         )
 
-    def action_mkdir(self):
+    @work
+    async def action_mkdir(self):
         fs = self.active_filelist.fs
         src = self.active_filelist.path
 
-        @with_error_handler(self)
-        def on_mkdir(result: str | None):
-            if result is not None:
-                new_dir_path = posixpath.join(src, result)
-                fs.makedirs(new_dir_path, exist_ok=True)
-                self.active_filelist.update_listing()
-
-        self.push_screen(
-            InputDialog("New directory", btn_ok="Create"),
-            on_mkdir,
+        new_name = await self.push_screen_wait(
+            InputDialog("New directory", btn_ok="Create")
         )
+        if new_name is None:
+            return
+
+        async with error_handler_async(self):
+            new_dir_path = posixpath.join(src, new_name)
+            fs.makedirs(new_dir_path, exist_ok=True)
+            self.active_filelist.update_listing()
+            self.active_filelist.scroll_to(posixpath.dirname(new_name) or new_name)
+
+    @work
+    async def action_mkfile(self):
+        fs = self.active_filelist.fs
+        src = self.active_filelist.path
+
+        new_name = await self.push_screen_wait(InputDialog("New file", btn_ok="Create"))
+        if new_name is None:
+            return
+
+        # FIXME: only allow simple names in the first place (validation)
+        if posixpath.basename(new_name) != new_name:
+            self.push_screen(
+                StaticDialog.error("Error", "Only simple names are allowed")
+            )
+            return
+
+        async with error_handler_async(self):
+            new_file_path = posixpath.join(src, new_name)
+            fs.touch(new_file_path)
+            self.active_filelist.update_listing()
+            self.active_filelist.scroll_to(posixpath.dirname(new_name) or new_name)
 
     def action_shell(self):
         fs = self.active_filelist.fs
