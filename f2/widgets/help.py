@@ -45,6 +45,7 @@ HELP = f"""
  - `Backspace` or `Enter` on the `..` entry: navigate up in a directory tree
  - `b`: go to a bookmarked location (see also "Bookmarks configuration" below)
  - `Ctrl+g`: enter a path to jump to
+ - `/`: incremental fuzzy search in the list
  - `R`: refresh the file listing
  - `o`: open the current location in the deafult OS file manager
 

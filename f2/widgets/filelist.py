@@ -19,6 +19,7 @@ from textual import events, on, work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
+from textual.fuzzy import FuzzySearch
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import DataTable, Input, Static
@@ -223,7 +224,7 @@ class FileList(Static):
         else:
             self.add_selection(name)
 
-    def scroll_to(self, name: str):
+    def scroll_to_entry(self, name: str):
         try:
             idx = self.table.get_row_index(name)
             self.table.cursor_coordinate = (idx, 0)  # type: ignore
@@ -242,14 +243,14 @@ class FileList(Static):
         if e.is_dir:
             style = "bold"
         elif e.is_executable:
-            style = theme.error
+            style = theme.error or "red"
         elif e.is_hidden:
             style = "dim"
         elif e.is_link:
             style = "underline"
 
         if e.name in self.selection:
-            style += f" {theme.accent} italic"
+            style += f" {theme.accent or 'yellow'} italic"
 
         return style
 
@@ -403,7 +404,7 @@ class FileList(Static):
         self._update_table(ls)
         # if stil in same dir as before, restore the cursor position
         if self.path == posixpath.dirname(old_cursor_path):
-            self.scroll_to(posixpath.basename(old_cursor_path))
+            self.scroll_to_entry(posixpath.basename(old_cursor_path))
         # update list border with some information about the directory:
         total_size_str = naturalsize(ls.total_size)
         if is_local_fs(self.fs):
@@ -421,7 +422,7 @@ class FileList(Static):
         self.update_listing()
         # if navigated "up", select source dir in the new list:
         if new_path == posixpath.dirname(old_path):
-            self.scroll_to(posixpath.basename(old_path))
+            self.scroll_to_entry(posixpath.basename(old_path))
 
     def watch_show_hidden(self, old: bool, new: bool):
         if not new:  # if some files will be not shown anymore, better be safe:
@@ -504,12 +505,14 @@ class FileList(Static):
 
     @on(Input.Changed, ".search")
     def on_search_input_changed(self, event: Input.Changed):
-        search_term = event.value
-        search_scope = sorted(self.table.rows)
-        for key in search_scope:
-            if key.value.startswith(search_term):
-                self.scroll_to(key.value)
-                break
+        matcher = FuzzySearch()
+        query = event.value
+        names: list[str] = [key.value for key in self.table.rows]  # type: ignore
+        scores = [matcher.match(query, name)[0] for name in names]
+        max_score = max(scores)
+        if max_score > 0:
+            idx = scores.index(max_score)
+            self.scroll_to_entry(names[idx])
 
     def action_open(self):
         # "open" is handled separately from "table.row_selected" to distinguish

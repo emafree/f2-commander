@@ -46,7 +46,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [x] Directory summary in the file listing footer
    - [x] "List dirs first/inline" toggle
    - [x] Ordering by name case sensitivity on/off
-   - [ ] Quick search: navigate file list by typing in the file names (starts with / or ?)
+   - [x] Quick search: navigate file list by typing in the file names
    - [x] Navigate to path (enter path, with auto-completion)
    - [x] Configurable bookmarks. Predefined bookmarks to typical desktop directories
          like Downloads, Documents, etc.

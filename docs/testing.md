@@ -32,7 +32,11 @@ It also lists all known bugs (see the **KNOWN BUG** tags).
  - `Enter` on `..` goes up.
  - `Backspace` pressed anywhere goes up.
 
-**KNOWN BUG**: `C+u`/`C+d` should scroll half a page (not en entire page).
+**TODO**: Incremental search
+
+**KNOWN BUGS**:
+ - `C+u`/`C+d` should scroll half a page (not en entire page).
+ - Incremental search leaves the Ctrl-n binding visible in the footer
 
 3. Navigation with mouse
 

@@ -617,7 +617,7 @@ class F2Commander(App):
 
         self.active_filelist.reset_selection()
         self.active_filelist.update_listing()
-        self.active_filelist.scroll_to(posixpath.basename(dst))
+        self.active_filelist.scroll_to_entry(posixpath.basename(dst))
 
     def action_delete(self):
         fs = self.active_filelist.fs
@@ -674,7 +674,9 @@ class F2Commander(App):
             new_dir_path = posixpath.join(src, new_name)
             fs.makedirs(new_dir_path, exist_ok=True)
             self.active_filelist.update_listing()
-            self.active_filelist.scroll_to(posixpath.dirname(new_name) or new_name)
+            self.active_filelist.scroll_to_entry(
+                posixpath.dirname(new_name) or new_name
+            )
 
     @work
     async def action_mkfile(self):
@@ -696,7 +698,9 @@ class F2Commander(App):
             new_file_path = posixpath.join(src, new_name)
             fs.touch(new_file_path)
             self.active_filelist.update_listing()
-            self.active_filelist.scroll_to(posixpath.dirname(new_name) or new_name)
+            self.active_filelist.scroll_to_entry(
+                posixpath.dirname(new_name) or new_name
+            )
 
     def action_shell(self):
         fs = self.active_filelist.fs
