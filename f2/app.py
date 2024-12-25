@@ -783,6 +783,16 @@ class F2Commander(App):
 
         self.push_screen(StaticDialog("Quit?"), on_confirm)
 
+    def on_descendant_blur(self, event):
+        pass
+        # raise Exception("WORKS IN APP!")
+        # if event.descendant == self.search_input:
+        #    self.dismiss_search()
+
+    def on_descendant_focus(self, event):
+        pass
+        # raise Exception("WORKS IN APP!")
+
     @work
     async def action_about(self):
         def on_dismiss(result):
@@ -798,3 +808,10 @@ class F2Commander(App):
 
     def action_help(self):
         self.panel_right.panel_type = "help"
+
+    # def check_action(self, action: str, parameters):
+    #     # disable all bindings in search mode:
+    #     # TODO: disbale in all widgets (only app is missing?)
+    #     if self.search_mode is not None:
+    #         return False
+    #     return True

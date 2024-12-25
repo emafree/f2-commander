@@ -15,12 +15,13 @@ from typing import Tuple
 from fsspec import AbstractFileSystem, filesystem
 from humanize import naturalsize
 from rich.text import Text
-from textual import events, work
+from textual import events, on, work
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import DataTable, Static
+from textual.widgets import DataTable, Input, Static
 from textual.widgets.data_table import RowDoesNotExist
 
 from f2.fs import DirEntry, DirList, is_local_fs, list_dir
@@ -93,6 +94,12 @@ class FileList(Static):
             "f",
         ),
         Command(
+            "search",
+            "Search",
+            "Incremental search in the file list, with fuzzy matching",
+            "/",
+        ),
+        Command(
             "open_in_os_file_manager",
             "Open in OS file manager",
             "Open current location in the default OS file manager",
@@ -158,6 +165,7 @@ class FileList(Static):
     cursor_path = reactive(Path.cwd().as_posix())
     active = reactive(False)
     glob = reactive(None, init=False)
+    search_mode = reactive(None)
     # FIXME: same as for cursor_path above
     selection: set[str] = set()
 
@@ -167,7 +175,13 @@ class FileList(Static):
 
     def compose(self) -> ComposeResult:
         self.table: DataTable = DataTable(cursor_type="row")
-        yield self.table
+        self.search_input: Input = Input(
+            classes="search hidden",
+            placeholder="Quick search (Esc or Enter to exit)",
+        )
+        with Vertical():
+            yield self.table
+            yield self.search_input
 
     def on_mount(self) -> None:
         self._add_columns()
@@ -470,6 +484,33 @@ class FileList(Static):
         if self.fs.isdir(selected_path):
             self.path = selected_path
 
+    def action_search(self):
+        self.search_mode = True
+        self.refresh_bindings()
+        self.search_input.remove_class("hidden")
+        self.search_input.focus()
+
+    def dismiss_search(self):
+        with self.search_input.prevent(Input.Changed):
+            self.search_input.value = ""
+        self.table.focus()
+        self.search_input.add_class("hidden")
+        self.search_mode = False
+        self.refresh_bindings()
+
+    @on(Input.Submitted, ".search")
+    def on_search_input_submitted(self, event: Input.Submitted):
+        self.dismiss_search()
+
+    @on(Input.Changed, ".search")
+    def on_search_input_changed(self, event: Input.Changed):
+        search_term = event.value
+        search_scope = sorted(self.table.rows)
+        for key in search_scope:
+            if key.value.startswith(search_term):
+                self.scroll_to(key.value)
+                break
+
     def action_open(self):
         # "open" is handled separately from "table.row_selected" to distinguish
         # between "enter" and mouse click (avoid navigation and running
@@ -531,15 +572,27 @@ class FileList(Static):
             self.Selected(fs=self.fs, path=self.cursor_path, file_list=self)
         )
 
-    def on_descendant_focus(self):
+    def on_descendant_focus(self, event):
         self.active = True
         self.add_class("focused")
 
-    def on_descendant_blur(self):
+    def on_descendant_blur(self, event):
         self.active = False
         self.remove_class("focused")
+        if event.widget == self.search_input:
+            self.dismiss_search()
 
     def on_key(self, event: events.Key) -> None:
+        if self.search_mode:
+            self.on_key_search_mode(event)
+        else:
+            self.on_key_normal_mode(event)
+
+    def on_key_search_mode(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.dismiss_search()
+
+    def on_key_normal_mode(self, event: events.Key) -> None:
         # FIXME: refactor to use actions?
         if event.key == "g":
             self.table.action_scroll_top()
