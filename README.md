@@ -13,7 +13,7 @@ From PyPI:
 From source:
 
     poetry build
-    pipx install [--force] dist/f2_commander-0.2.0.tar.gz
+    pipx install [--force] dist/f2_commander-0.3.0.tar.gz
 
 This software is designed to work in Linux and macOS. It should also work in
 WSL (Windows Subsystem for Linux).
