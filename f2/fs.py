@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from fsspec import AbstractFileSystem
+from fsspec.implementations.zip import ZipFileSystem
 
 
 @dataclass
@@ -151,8 +152,6 @@ def list_dir(
         up.name = ".."
         entries.append(up)
 
-    # FIXME: allow ".." when at the root of an archive
-
     for child in fs.ls(path, detail=True):
         entry = DirEntry.from_info(fs, child)
         if glob_expression and not fnmatch.fnmatch(entry.name, glob_expression):
@@ -287,6 +286,11 @@ def move(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: 
 
 def is_local_fs(fs: AbstractFileSystem) -> bool:
     return "file" in fs.protocol
+
+
+def is_archive_fs(fs: AbstractFileSystem) -> bool:
+    # TODO: enable libarchive
+    return isinstance(fs, ZipFileSystem)
 
 
 def is_supported_archive(path: str) -> bool:

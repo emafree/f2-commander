@@ -173,6 +173,8 @@ class FileList(Static):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fs = filesystem("file")
+        self.parent_fs = None
+        self.parent_path = None
 
     def compose(self) -> ComposeResult:
         self.table: DataTable = DataTable(cursor_type="row")
@@ -317,6 +319,8 @@ class FileList(Static):
     #
     # END OF FORMATTING
     #
+
+    #
     # ORDERING:
     #
 
@@ -401,6 +405,14 @@ class FileList(Static):
             include_hidden=self.show_hidden,
             glob_expression=self.glob,
         )
+
+        if self.path == "":
+            entry = DirEntry.from_info(
+                self.parent_fs, self.parent_fs.info(self.parent_path)
+            )
+            entry.name = ".."
+            ls.entries.insert(0, entry)
+
         self._update_table(ls)
         # if stil in same dir as before, restore the cursor position
         if self.path == posixpath.dirname(old_cursor_path):
@@ -409,6 +421,8 @@ class FileList(Static):
         total_size_str = naturalsize(ls.total_size)
         if is_local_fs(self.fs):
             self.parent.border_title = self.path
+        elif self.parent_fs is not None:
+            self.parent.border_title = self.parent_path
         else:
             self.parent.border_title = self.fs.unstrip_protocol(self.path)
         subtitle = f"{total_size_str} in {ls.file_count} files | {ls.dir_count} dirs"
@@ -481,9 +495,24 @@ class FileList(Static):
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected):
         entry_name: str = event.row_key.value  # type: ignore
-        selected_path = posixpath.normpath(posixpath.join(self.path, entry_name))
-        if self.fs.isdir(selected_path):
-            self.path = selected_path
+        if entry_name == "..":
+            self.on_navigate_up()
+        else:
+            selected_path = posixpath.join(self.path, entry_name)
+            if self.fs.isdir(selected_path):
+                self.path = selected_path
+
+    def on_navigate_up(self):
+        if self.path != "":
+            # regular upwards navigation
+            self.path = posixpath.dirname(self.path)
+        else:
+            # navgiate to the parent file system, if at root of a child one
+            self.fs = self.parent_fs
+            self.set_reactive(FileList.path, self.parent_path)
+            self.path = posixpath.dirname(self.parent_path)
+            self.parent_fs = None
+            self.parent_path = None
 
     def action_search(self):
         self.search_mode = True
@@ -505,6 +534,9 @@ class FileList(Static):
 
     @on(Input.Changed, ".search")
     def on_search_input_changed(self, event: Input.Changed):
+        if not event.value:
+            return
+
         matcher = FuzzySearch()
         query = event.value
         names: list[str] = [key.value for key in self.table.rows]  # type: ignore
@@ -606,7 +638,7 @@ class FileList(Static):
         elif event.key in ("ctrl+b", "ctrl+u"):
             self.table.action_page_up()
         elif event.key == "backspace":
-            self.path = posixpath.dirname(self.path)
+            self.on_navigate_up()
         elif event.key == "R":
             self.update_listing()
         elif event.key == "enter":

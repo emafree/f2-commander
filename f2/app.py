@@ -23,13 +23,15 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.command import DiscoveryHit, Hit, Provider
 from textual.containers import Horizontal
+from textual.css.query import NoMatches
 from textual.reactive import reactive
 from textual.widgets import Footer
 
 from .commands import Command
 from .config import config, set_user_has_accepted_license, user_has_accepted_license
 from .errors import error_handler_async, with_error_handler
-from .fs import copy, is_executable, is_local_fs, is_supported_archive, move
+from .fs import (copy, is_archive_fs, is_executable, is_local_fs, is_supported_archive,
+                 move)
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
@@ -257,11 +259,17 @@ class F2Commander(App):
 
     @property
     def left(self):
-        return self.query_one("#left > *")
+        try:
+            return self.query_one("#left > *")
+        except NoMatches:
+            return None
 
     @property
     def right(self):
-        return self.query_one("#right > *")
+        try:
+            return self.query_one("#right > *")
+        except NoMatches:
+            return None
 
     # FIXME: left/right are not necessarily FileList; make Optional and handle None
     @property
@@ -301,9 +309,14 @@ class F2Commander(App):
             return
 
         def _open(path: str):
-            if is_supported_archive(path):
+            if is_supported_archive(path) and not is_archive_fs(
+                self.active_filelist.fs
+            ):
+                self.active_filelist.parent_fs = self.active_filelist.fs
+                self.active_filelist.parent_path = path
                 self.active_filelist.fs = ZipFileSystem(path, mode="r")
                 self.active_filelist.path = ""
+                self.refresh_bindings()
             else:
                 open_cmd = native_open()
                 if open_cmd is not None:
@@ -339,15 +352,18 @@ class F2Commander(App):
             "The file is not in the local file system. "
             "It will be downloaded first. Continue?"
         )
-        self.push_screen(
-            StaticDialog(
-                title="Download?",
-                message=msg,
-                btn_ok="Yes",
-                btn_cancel="No",
-            ),
-            on_download,
-        )
+        if is_archive_fs(fs):
+            on_download(True)
+        else:
+            self.push_screen(
+                StaticDialog(
+                    title="Download?",
+                    message=msg,
+                    btn_ok="Yes",
+                    btn_cancel="No",
+                ),
+                on_download,
+            )
 
     def _upload(self, fs, local_path, remote_path, cont_fn):
 
@@ -802,3 +818,12 @@ class F2Commander(App):
 
     def action_help(self):
         self.panel_right.panel_type = "help"
+
+    def check_action(self, action, parameters):
+        if self.active_filelist and is_archive_fs(self.active_filelist.fs):
+            if action in ("move", "delete", "mkfile", "mkdir", "edit"):
+                return None  # visible, but disabled
+            else:
+                return True
+        else:
+            return True

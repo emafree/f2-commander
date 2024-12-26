@@ -32,7 +32,7 @@ the world of modern computing.
 A "file system" can be anything that can seem to contain files and directories,
 (a local disk, a BLOB storage, a Cloud drive, a compressed file, etc.).
 
-Finally, it is desgined to be discoverable: making file systems easy to
+Finally, it is designed to be discoverable: making file systems easy to
 navigate, and making the F2 Commander itself obvious to use.
 
 F2 Commander is an overgrown personal project, may contain bugs, and is
@@ -45,7 +45,7 @@ planned, see the [complete feature list](docs/features.md). Some features are a
 work-in-progress as indicated below.
 
  - [x] Works in Linux, macOS
- - [ ] Works in WSL (to be extensively tested)
+ - [ ] Works in WSL (should work, but to be extensively tested)
  - [x] An orthodox two-panel interface with a footer menu
  - [x] Vi-like key bindings
  - [ ] Classic Fn key bindings, and configurable key bindings
@@ -57,7 +57,7 @@ work-in-progress as indicated below.
  - [ ] Recursive file search. Find in (text) files.
  - [x] Integration with native OS applications (open a directory in a file
        manager, open a file with a default program)
- - [x] Basic file and directory manipulation (copy, move, move to trash,
+ - [x] File and directory manipulation (copy, move, move to trash,
    etc.)
  - [x] Multiple file selection
  - [x] View and edit files
@@ -70,24 +70,20 @@ work-in-progress as indicated below.
        Dropbox, Google Drive, FTP/FTPS, SFTP, SMB, WebDAV, and many more.
        Custom implementations are possible through other
        [fsspec](https://github.com/fsspec/filesystem_spec) implementations and
-       plugins.
-
-   > Note: Remote file systems are in *preview*. All features are available,
-   > but not extensively tested. Connection configurations are not persisted,
-   > connection dialog is rough on the edges, but functional.
-
- - [ ] Read and extract archives and compressed files. A non-exhaustive
+       plugins. \*\*See also the note below.
+ - [x] Read and extract ZIP files
+ - [ ] Create and update ZIP files
+ - [ ] Read and extract other archives and compressed files. A non-exhaustive
        list includes: ZIP, TAR, XAR, LHA/LZH, ISO 0660 (optical disc files),
        cpio, mtree, shar, ar, pax, RAR, MS CAB, 7-Zip, WARC, and more are
        supported in **read-only** mode (can be listed, viewed, extracted) -
-       eveything supported by [libarchive](https://github.com/libarchive/libarchive).
-
-   > Note: Currently, only ZIP files are supported in read-only mode.
-   > Support for other formats is coming soon.
-
- - [ ] Create and update ZIP files
+       everything supported by [libarchive](https://github.com/libarchive/libarchive).
  - [x] Multiple color themes
  - [x] Built-in help
+
+> \*\*Note: Remote file systems are in *preview*. All features are available,
+> but not extensively tested. Connection configurations are not persisted,
+> connection dialog is rough on the edges, but functional.
 
 And, hopefully, a polished up user experience that you'd normally expect from
 a robust file manager. Feel free to submit any issues to make F2 Commander
@@ -138,7 +134,7 @@ b) my intent is to keep F2 Commander stable, but future versions may include
 F2 Commander is made with [Textual](https://github.com/textualize/textual/)
 framework, [fsspec](https://github.com/fsspec/filesystem_spec) and other great
 packages. Many features are made possible or stem directly from these, and I
-encourgae F2 Commander users to support them.
+encourage F2 Commander users to support them.
 
 ## Contributions
 

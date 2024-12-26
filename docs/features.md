@@ -118,6 +118,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
 
    - [ ] Predefined "remote" file systems can be bookmarked
    - [ ] Autoamtically download missing packages (with user confirmation)
+   - [ ] User confirmations for actions needing download/upload
 
  - Archival and compression support
 
@@ -137,6 +138,8 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [ ] 7-Zip (read-only)
    - [ ] WARC (read-only)
    - [ ] ... more are possible with plugins ...
+
+   - [ ] User confirmations for actions that will update a (ZIP) archive
 
  - Documentation
 
