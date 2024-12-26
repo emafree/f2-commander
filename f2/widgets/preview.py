@@ -9,6 +9,7 @@ import posixpath
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 from fsspec import AbstractFileSystem, filesystem
 from rich.syntax import Syntax
@@ -71,7 +72,7 @@ class Preview(Static):
             # TODO: leavey a user a possibility to force the preview?
             return "Cannot preview, probably not a text file"
 
-    def _is_text(self, path) -> bool | None:
+    def _is_text(self, path) -> Optional[bool]:
         """Attempt to detect if a file is a text file. Assume that the result may be
         wrong and the file may turn out to be binary.
         An altenrative implementation would use python-magic, but it creates a

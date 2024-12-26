@@ -8,10 +8,10 @@ import os
 import platform
 import shlex
 import shutil
-from typing import List
+from typing import List, Optional
 
 
-def editor() -> List[str] | None:
+def editor() -> Optional[List[str]]:
     """Try to find an editor. Returns a command as a splitted list of arguments,
     or None if no viable alternative is found. Prefers $EDITOR when possible."""
 
@@ -28,7 +28,7 @@ def editor() -> List[str] | None:
     return None
 
 
-def viewer(or_editor: bool = True) -> List[str] | None:
+def viewer(or_editor: bool = True) -> Optional[List[str]]:
     """Try to find a viewer. Returns a command as a splitted list of arguments,
     or None if no viable alternative is found. Use editor if no viewer is found."""
 
@@ -39,7 +39,7 @@ def viewer(or_editor: bool = True) -> List[str] | None:
     return editor() if or_editor else None
 
 
-def shell() -> List[str] | None:
+def shell() -> Optional[List[str]]:
     """Try to find a shell executable. Returns a command as a splitted list of
     arguments, or None if no viable alternative is found."""
 
@@ -50,16 +50,16 @@ def shell() -> List[str] | None:
     return None
 
 
-def native_open() -> List[str] | None:
+def native_open() -> Optional[List[str]]:
     """Returns a generic 'file opener' relevant for the current OS, or None if none
     is known for the use OS."""
 
-    match platform.system():
-        case "Linux":
-            return ["xdg-open"]
-        case "Darwin":
-            return ["open"]
-        case "Windows":
-            return ["start"]
-        case _:
-            return None
+    os_family = platform.system()
+    if os_family == "Linux":
+        return ["xdg-open"]
+    elif os_family == "Darwin":
+        return ["open"]
+    elif os_family == "Windows":
+        return ["start"]
+    else:
+        return None

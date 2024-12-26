@@ -10,7 +10,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 from fsspec import AbstractFileSystem, filesystem
 from humanize import naturalsize
@@ -350,7 +350,7 @@ class FileList(Static):
 
         return prefix + name
 
-    def sort_key_by_size(self, e: DirEntry) -> Tuple[int, str | None]:
+    def sort_key_by_size(self, e: DirEntry) -> Tuple[int, Optional[str]]:
         max_file_size = 2**64  # maximum file size in zfs, and probably on the planet
         # stick ".." at the top of the list, regardless of the order (asc/desc)
         if e.name == "..":
@@ -364,7 +364,7 @@ class FileList(Static):
 
         return (size_key, self.sort_key_by_name(e))  # add name for stable ordering
 
-    def sort_key_by_mtime(self, e: DirEntry) -> Tuple[float, str | None]:
+    def sort_key_by_mtime(self, e: DirEntry) -> Tuple[float, Optional[str]]:
         y3k = 32_503_680_000  # this program has Y3K issues
         # stick ".." at the top of the list, regardless of the order (asc/desc)
         if e.name == "..":
@@ -460,7 +460,7 @@ class FileList(Static):
         direction = "⬆" if new.reverse else "⬇"
         new_sort_col.label = f"{new_sort_col.label} {direction}"  # type: ignore
 
-    def watch_glob(self, old: str | None, new: str | None):
+    def watch_glob(self, old: Optional[str], new: Optional[str]):
         self.reset_selection()
         self.update_listing()
 

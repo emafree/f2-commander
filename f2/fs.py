@@ -13,7 +13,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.zip import ZipFileSystem
@@ -67,7 +67,7 @@ def _find_mtime(info: dict[str, Any]) -> float:
             fs_mtime = info[name]
             break
 
-    mtime: float | None = None
+    mtime: Optional[float] = None
 
     # try to convert the value found:
     if isinstance(fs_mtime, str):
@@ -137,7 +137,7 @@ def list_dir(
     fs: AbstractFileSystem,
     path: str,
     include_hidden: bool = True,
-    glob_expression: str | None = None,
+    glob_expression: Optional[str] = None,
 ) -> DirList:
     if not fs.isdir(path):
         raise ValueError(f"{path} is not a directory")

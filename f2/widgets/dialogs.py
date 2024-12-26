@@ -5,6 +5,7 @@
 # Copyright (c) 2024 Timur Rubeko
 
 from enum import Enum
+from typing import Optional
 
 from textual import on
 from textual.app import ComposeResult
@@ -35,9 +36,9 @@ class StaticDialog(ModalScreen[bool]):
     def __init__(
         self,
         title: str,
-        message: str | None = None,
-        btn_ok: str | None = "OK",
-        btn_cancel: str | None = "Cancel",
+        message: Optional[str] = None,
+        btn_ok: Optional[str] = "OK",
+        btn_cancel: Optional[str] = "Cancel",
         style: Style = Style.INFO,
         classes: str = "",
         *args,
@@ -92,7 +93,7 @@ class StaticDialog(ModalScreen[bool]):
         return StaticDialog(btn_cancel=None, style=Style.DANGER, *args, **kwargs)
 
 
-class InputDialog(ModalScreen[str | None]):
+class InputDialog(ModalScreen[Optional[str]]):
     BINDINGS = [
         Binding("escape", "dismiss", show=False),
         Binding("backspace", "dismiss", show=False),

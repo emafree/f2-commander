@@ -11,7 +11,7 @@ import tempfile
 from functools import partial
 from importlib.metadata import version
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 import fsspec
 from fsspec.core import url_to_fs
@@ -30,8 +30,14 @@ from textual.widgets import Footer
 from .commands import Command
 from .config import config, set_user_has_accepted_license, user_has_accepted_license
 from .errors import error_handler_async, with_error_handler
-from .fs import (copy, is_archive_fs, is_executable, is_local_fs, is_supported_archive,
-                 move)
+from .fs import (
+    copy,
+    is_archive_fs,
+    is_executable,
+    is_local_fs,
+    is_supported_archive,
+    move,
+)
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
@@ -48,7 +54,7 @@ class F2AppCommands(Provider):
         flist_commands = [(flist, cmd) for cmd in flist.BINDINGS_AND_COMMANDS]
         return app_commands + flist_commands
 
-    def _fmt_name(self, cmd, text: Text | None = None):
+    def _fmt_name(self, cmd, text: Optional[Text] = None):
         t = text or Text(cmd.name)
         if cmd.binding_key is not None:
             t.append(" ")
@@ -736,7 +742,7 @@ class F2Commander(App):
         else:
             self.push_screen(StaticDialog.error("Error", "No shell found!"))
 
-    def _on_go_to(self, location: str | dict | None):
+    def _on_go_to(self, location: Union[str, dict, None]):
         if location is None:
             return
 
@@ -786,7 +792,7 @@ class F2Commander(App):
     async def action_connect(self):
 
         @with_error_handler(self)
-        def _on_conect(result: tuple[str, str, dict[str, Any]] | None):
+        def _on_conect(result: tuple[str, str, Optional[dict[str, Any]]]):
             if result is None:
                 return
 
