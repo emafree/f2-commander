@@ -422,7 +422,7 @@ class FileList(Static):
         if is_local_fs(self.fs):
             self.parent.border_title = self.path
         elif self.parent_fs is not None:
-            self.parent.border_title = self.parent_path
+            self.parent.border_title = posixpath.join(self.parent_path, self.path)
         else:
             self.parent.border_title = self.fs.unstrip_protocol(self.path)
         subtitle = f"{total_size_str} in {ls.file_count} files | {ls.dir_count} dirs"
