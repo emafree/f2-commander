@@ -116,6 +116,11 @@ To run the application with dev tools:
     poetry run textual console [-v -x SYSTEM -x EVENT -x DEBUG -x INFO]  # this first!
     poetry run textual run --dev f2.app:F2Commander
 
+To run tests in all target Python versions (typically before a release):
+
+    pipx install nox
+    nox [-r]  # -r == --reuse-existing-virtualenvs
+
 ## About (continued)
 
 "F2" is a loose interpretation of "a **F**ile manager with **2** side-by-side
