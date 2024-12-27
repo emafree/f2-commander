@@ -10,6 +10,27 @@ from pathlib import Path
 import dotenv
 import platformdirs
 
+DEFAULT_CONFIG = f"""
+dirs_first=True
+order_case_sensitive=True
+show_hidden=False
+
+theme="'textual-dark'"
+
+bookmarks = "[
+  '~',
+  '{Path("~") / Path(platformdirs.user_documents_dir()).relative_to(Path.home())}',
+  '{Path("~") / Path(platformdirs.user_downloads_dir()).relative_to(Path.home())}',
+  '{Path("~") / Path(platformdirs.user_pictures_dir()).relative_to(Path.home())}',
+  '{Path("~") / Path(platformdirs.user_videos_dir()).relative_to(Path.home())}',
+  '{Path("~") / Path(platformdirs.user_music_dir()).relative_to(Path.home())}',
+]"
+
+file_systems = "[
+  {{'display_name': 'Rebex.net Demo FTP server', 'protocol': 'ftp', 'host': 'test.rebex.net', 'username': 'demo', 'password': 'password'}},
+]"
+""".strip()
+
 
 def config_root() -> Path:
     """Path to the directory that hosts all configuration files"""
@@ -27,6 +48,11 @@ def user_config_path() -> Path:
     if not config_path.exists():
         config_path.touch()
     return config_path
+
+
+def init_default_config():
+    if user_config_path().stat().st_size == 0:
+        user_config_path().write_text(DEFAULT_CONFIG)
 
 
 # FIXME: current Config + InstantConfigAttr implementation is straightforward, but
@@ -56,16 +82,7 @@ class Config:
     order_case_sensitive = InstantConfigAttr(True)
     show_hidden = InstantConfigAttr(False)
     theme = InstantConfigAttr("textual-dark")
-    bookmarks = InstantConfigAttr(
-        [
-            str(Path.home()),
-            platformdirs.user_documents_dir(),
-            platformdirs.user_downloads_dir(),
-            platformdirs.user_pictures_dir(),
-            platformdirs.user_videos_dir(),
-            platformdirs.user_music_dir(),
-        ]
-    )
+    bookmarks = InstantConfigAttr([str(Path.home())])
     file_systems = InstantConfigAttr([])
 
 

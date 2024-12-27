@@ -201,7 +201,10 @@ class ConnectToRemoteDialog(ModalScreen):
             elif value_type in (int, float):
                 parsed_value = value_type(widget_value)
             else:
-                parsed_value = ast.literal_eval(widget_value)
+                try:
+                    parsed_value = ast.literal_eval(widget_value)
+                except ValueError:
+                    parsed_value = widget_value  # str by default
 
             param_values[param.name] = parsed_value
 

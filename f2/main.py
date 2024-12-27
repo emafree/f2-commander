@@ -5,8 +5,10 @@
 # Copyright (c) 2024 Timur Rubeko
 
 from .app import F2Commander
+from .config import init_default_config
 
 
 def main():
+    init_default_config()
     app = F2Commander()
     app.run()

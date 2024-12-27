@@ -79,8 +79,9 @@ work-in-progress as indicated below.
  - [x] Built-in help
 
 > \*\*Note: Remote file systems are in *preview*. All features are available,
-> but not extensively tested. Connection configurations are not persisted,
-> connection dialog is rough on the edges, but functional.
+> but not extensively tested. Connection dialog is rather crude, but is
+> otherwise functional. Connections can be preconfigured in a configuration
+> file using raw `fsspec` key-value format (see built-in help for more deatils).
 
 And, hopefully, a polished up user experience that you'd normally expect from
 a robust file manager. Feel free to submit any issues to make F2 Commander

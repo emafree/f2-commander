@@ -97,8 +97,13 @@ Some actions, such as copy, move and delete, can be performed on multiple entrie
 Remote file systems support is in "preview" mode. Most functionality is available,
 but bugs are possible.
 
-To connect to a remote file system users need to install additional packages that
-are indicated in the "Connect" dialog upon selecting a protocol.
+To connect to a remote file system user may need to **install additional packages**
+that are indicated in the "Connect" dialog upon selecting a protocol.
+
+For example, if you installed F2 Commander with `pipx`, and you want to connect
+to an S3 bucket, you need to install the `s3fs` package:
+
+    pipx inject f2-commander s3fs
 
 "Connect" dialog is in its "alpha" version, exposing the underlying connector
 configuration in a very generic way. Refer to the documentation of the installed
@@ -106,9 +111,13 @@ additional packages for more information.
 
  - `Ctrl+t`: connect to a remote file system
 
-### Archives and compressed files
+### Remove file systems bookmarks
 
-**Extract**
+It is possible to persist a connection for a remote file system, to quickly
+reconnect to it without using the connection dialog. See the "Remote file systems"
+section in the "Configuration" below.
+
+### Extracting an archive or a compressed file
 
 F2 Comamnder can read and extract archives and compressed files supported by
 `libarchive`. A non-exhaustive list includes: ZIP, TAR, XAR, LHA/LZH, ISO 0660
@@ -118,7 +127,7 @@ See [libarchive](https://github.com/libarchive/libarchive) for more information.
 To view and extract files from from an archive, open it (`Enter`) and copy files
 from it (`c`).
 
-**Create**
+### Creating an archive
 
 To create an archive, select one or multiple files and directories, and run the
 "Create an archive" action from the Command Palette (`Ctrl+p`).
@@ -157,13 +166,15 @@ Your configuration file is:
 
     {str(user_config_path())}
 
-You can use "Navigate to config" command from the Command Palette.
+You can use "Show the configuration directory" command from the Command Palette.
 
 Configuration file is a simple list of key-value pairs, similar to how variables are
-declared in Bash. The syntax is that of `.env` files and is described in more details
-in https://saurabh-kumar.com/python-dotenv/#file-format . Allowed values are Python
-primitives: strings, numbers, boolean `True` or `False` (capitalized) and lists of
-these values. Values can be quoted.
+declared in Bash. The syntax is that of
+[`.env` files](https://saurabh-kumar.com/python-dotenv/#file-format).
+Allowed values are Python primitives: strings, numbers, boolean `True` or `False`
+(capitalized) and collection of these values (lists, dicts). Values can be quoted.
+
+A deafult configuration is provided with the application.
 
 The application may too write to the configuration file (e.g., when you change the
 settings within the application itself), but will attempt to preserve its formatting.
@@ -183,6 +194,40 @@ the value itself must be quoted. For example:
     ]"
 
 By default, bookmarks are set to the typical desktop locations, similar to the example.
+
+### Remote file systems
+
+Connection configuration for remote file systems can be persisted and accessed
+from the "Bookmarks" dialog.
+
+Connection configuration is defined under `file_systems` key, as a list of connection
+objects. Every connection object is a set of key-value pairs, with following keys:
+
+ - `'display_name'`: a title that will be shown in the bookmarks list
+ - `'protocol'`: a name of the protocol [recognized by fsspec](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.available_protocols)
+ - other keys are considered to be [fsspec `storage_options`](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.filesystem)
+
+Refer to the documentation of the installed additional packages for more information
+about the remote file system configuration.
+
+For example, to connect to an ADLS Gen2 storage account:
+
+    file_systems = "[
+        {{'display_name': 'My BLOB storage', 'protocol': 'abfs', 'account_name': 'myaccount', 'account_key': 'mykey'}},
+    ]"
+
+To connect to a remote file system user may need to install additional packages that
+provide `fsspec` implementations for the desired protocol. To find the name of the
+package, if it is missing, use the "Connect" dialog (`Ctrl+t`).
+
+For example, if you installed F2 Commander with `pipx`, and you want to connect
+to an S3 bucket, you need to install the `s3fs` package:
+
+    pipx inject f2-commander s3fs
+
+Remote bookmarks are in "alpha" version, exposing the underlying connector
+configuration in a very generic way. Refer to the documentation of the installed
+additional packages for more information.
 
 ## License
 
