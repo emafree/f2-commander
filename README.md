@@ -71,12 +71,9 @@ work-in-progress as indicated below.
        Custom implementations are possible through other
        [fsspec](https://github.com/fsspec/filesystem_spec) implementations and
        plugins. \*\*See also the note below.
- - [x] Read and extract ZIP files
- - [ ] Create and update ZIP files
- - [ ] Read and extract other archives and compressed files. A non-exhaustive
+ - [x] Read and write archives and compressed files. A non-exhaustive
        list includes: ZIP, TAR, XAR, LHA/LZH, ISO 0660 (optical disc files),
-       cpio, mtree, shar, ar, pax, RAR, MS CAB, 7-Zip, WARC, and more are
-       supported in **read-only** mode (can be listed, viewed, extracted) -
+       cpio, mtree, shar, ar, pax, RAR, MS CAB, 7-Zip, WARC, and more -
        everything supported by [libarchive](https://github.com/libarchive/libarchive).
  - [x] Multiple color themes
  - [x] Built-in help

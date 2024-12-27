@@ -250,6 +250,8 @@ class FileList(Static):
             style = "dim"
         elif e.is_link:
             style = "underline"
+        elif e.is_archive:
+            style = theme.accent or "yellow"
 
         if e.name in self.selection:
             style += f" {theme.accent or 'yellow'} italic"

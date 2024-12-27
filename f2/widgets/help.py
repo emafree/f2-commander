@@ -106,6 +106,27 @@ additional packages for more information.
 
  - `Ctrl+t`: connect to a remote file system
 
+### Archives and compressed files
+
+**Extract**
+
+F2 Comamnder can read and extract archives and compressed files supported by
+`libarchive`. A non-exhaustive list includes: ZIP, TAR, XAR, LHA/LZH, ISO 0660
+(optical disc files), cpio, mtree, shar, ar, pax, RAR, MS CAB, 7-Zip, WARC, and more.
+See [libarchive](https://github.com/libarchive/libarchive) for more information.
+
+To view and extract files from from an archive, open it (`Enter`) and copy files
+from it (`c`).
+
+**Create**
+
+To create an archive, select one or multiple files and directories, and run the
+"Create an archive" action from the Command Palette (`Ctrl+p`).
+
+Target file extension determines an archival and a compression format. Following
+extensions are recognized: `.zip`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tbz2`,
+`.tar.xz`, `.txz`, `.7z`, `.ar`, `.cpio`, `.warc`.
+
 ### Panels
 
 F2 Commander comes with these panel types:

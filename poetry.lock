@@ -480,6 +480,17 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "libarchive-c"
+version = "5.1"
+description = "Python interface to libarchive"
+optional = false
+python-versions = "*"
+files = [
+    {file = "libarchive-c-5.1.tar.gz", hash = "sha256:7bcce24ea6c0fa3bc62468476c6d2f6264156db2f04878a372027c10615a2721"},
+    {file = "libarchive_c-5.1-py2.py3-none-any.whl", hash = "sha256:8f23af20ef28503223284ec20ec7b695b0d88337c937aec62152a6953ed33a5a"},
+]
+
+[[package]]
 name = "linkify-it-py"
 version = "2.0.3"
 description = "Links recognition library with FULL unicode support."
@@ -1368,4 +1379,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "e70496730d84e62d4ad4ebc82e6fc0e84f09d5e4c76be1146357f97d6032c0ca"
+content-hash = "685e5f711b026e054b5b8ca6f9d99291339f767eb1a8c8652b340c5d13e7a352"

@@ -15,7 +15,6 @@ from typing import Any, Optional, Union
 
 import fsspec
 from fsspec.core import url_to_fs
-from fsspec.implementations.zip import ZipFileSystem
 from rich.text import Text
 from send2trash import send2trash
 from textual import on, work
@@ -37,6 +36,8 @@ from .fs import (
     is_local_fs,
     is_supported_archive,
     move,
+    open_archive,
+    write_archive,
 )
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
@@ -131,6 +132,12 @@ class F2Commander(App):
             "mkfile",
             "Create a file",
             "Create a new file (touch)",
+            None,
+        ),
+        Command(
+            "archive",
+            "Archive / compress files",
+            "Archive and optionally compress current selection",
             None,
         ),
         Command(
@@ -314,13 +321,15 @@ class F2Commander(App):
 
         def _open(path: str):
             if (
-                is_supported_archive(path)
-                and self.active_filelist
-                and not is_archive_fs(self.active_filelist.fs)
+                is_supported_archive(path)  # probably an archive
+                and (  # and it is not nested in another archive
+                    self.active_filelist and not is_archive_fs(self.active_filelist.fs)
+                )
+                and (archive_fs := open_archive(path))  # and it can be open
             ):
                 self.active_filelist.parent_fs = self.active_filelist.fs
                 self.active_filelist.parent_path = path
-                self.active_filelist.fs = ZipFileSystem(path, mode="r")
+                self.active_filelist.fs = archive_fs
                 self.active_filelist.path = ""
                 self.refresh_bindings()
             else:
@@ -774,6 +783,74 @@ class F2Commander(App):
             new_fs = fsspec.filesystem(protocol, **conf)
             self.active_filelist.fs = new_fs  # type: ignore
             self.active_filelist.path = path or "/"  # type: ignore
+
+    @work
+    async def action_archive(self):
+        if not is_local_fs(self.active_filelist.fs):
+            self.push_screen(
+                StaticDialog.info(
+                    "Cannot archive",
+                    "Archival is only supported in the local file system",
+                )
+            )
+            return
+
+        fs = self.active_filelist.fs
+        sources = self.active_filelist.selected_paths()
+        if len(sources) == 0:
+            return
+
+        msg = Text()
+        msg.append(
+            "Suported archive types: .zip, .tar.gz, .tar.bz2, .tar.xz, .7z, and more",
+            style="dim",
+        )
+        msg.append("\n\n")
+        msg.append(
+            f"Archive {posixpath.basename(sources[0])} to"
+            if len(sources) == 1
+            else f"Archive {len(sources)} selected entries to"
+        )
+        output_suggestion = (
+            posixpath.join(
+                self.active_filelist.path,
+                posixpath.splitext(posixpath.basename(sources[0]))[0],
+            )
+            if len(sources) == 1
+            else posixpath.join(self.active_filelist.path)
+        ) + ".zip"
+        output_path = await self.push_screen_wait(
+            InputDialog(
+                msg,
+                value=output_suggestion,
+                btn_ok="Archive",
+                select_on_focus=False,
+            )
+        )
+        if output_path is None:
+            return
+
+        if fs.isfile(output_path):
+            msg = f"{output_path} already exists. Overwrite?"
+            if not await self.push_screen_wait(
+                StaticDialog(
+                    title="Overwrite?",
+                    message=msg,
+                    btn_ok="Overwrite",
+                    style=Style.WARNING,
+                )
+            ):
+                return
+
+        async with error_handler_async(self):
+            write_archive(
+                self.active_filelist.selected_paths(),
+                self.active_filelist.path,
+                output_path,
+            )
+            self.active_filelist.reset_selection()
+            self.active_filelist.update_listing()
+            self.active_filelist.scroll_to_entry(posixpath.basename(output_path))
 
     @work
     async def action_go_to_bookmark(self):

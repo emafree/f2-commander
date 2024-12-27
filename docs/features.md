@@ -69,7 +69,8 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
            - [x] With spacebar
            - [x] Shift+j/k(up/down) selection
            - [ ] Shows selected files summary (count, total size)
-     - [ ] Progress bar for long operations
+     - [ ] Progress bar for long operations (incl. opening large archives,
+           copying, etc.)
      - [ ] Option to delete files (as opposed to moving to trash)
    - [x] View and edit files using user default viewer and editor
          - [ ] File-type view (and preview?) tools (e.g., why not preview
@@ -120,26 +121,10 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [ ] Autoamtically download missing packages (with user confirmation)
    - [ ] User confirmations for actions needing download/upload
 
- - Archival and compression support
+ - Archival and compression support (read, write):
 
-   - [x] ZIP (read-only)
-   - [ ] ZIP (create, update)
-   - [ ] TAR (read-only)
-   - [ ] XAR (read-only)
-   - [ ] LHA/LZH (read-only)
-   - [ ] ISO 9660 (optical disc) (read-only)
-   - [ ] cpio (read-only)
-   - [ ] mtree (read-only)
-   - [ ] shar (read-only)
-   - [ ] ar (read-only)
-   - [ ] pax (read-only)
-   - [ ] RAR (read-only)
-   - [ ] MS CAB (read-only)
-   - [ ] 7-Zip (read-only)
-   - [ ] WARC (read-only)
-   - [ ] ... more are possible with plugins ...
-
-   - [ ] User confirmations for actions that will update a (ZIP) archive
+   - [x] All libarchive formats
+   - [ ] ZIP update in-place (e.g., edit file)
 
  - Documentation
 
