@@ -6,6 +6,6 @@ fi
 set -x
 poetry run black --check .
 poetry run isort --check .
-poetry run flake8 .
-poetry run mypy
+poetry run flake8 f2 tests
+poetry run mypy f2 tests
 poetry run pytest

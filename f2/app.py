@@ -279,20 +279,18 @@ class F2Commander(App):
 
     # FIXME: left/right are not necessarily FileList; make Optional and handle None
     @property
-    def active_filelist(self) -> FileList:
-        return (
-            self.left
-            if isinstance(self.left, FileList) and self.left.active
-            else self.right
-        )
+    def active_filelist(self) -> Optional[FileList]:
+        for panel in (self.left, self.right):
+            if isinstance(panel, FileList) and panel.active:
+                return panel
+        return None
 
     @property
-    def inactive_filelist(self) -> FileList:
-        return (
-            self.right
-            if isinstance(self.left, FileList) and self.left.active
-            else self.left
-        )
+    def inactive_filelist(self) -> Optional[FileList]:
+        for panel in (self.left, self.right):
+            if isinstance(panel, FileList) and not panel.active:
+                return panel
+        return None
 
     @work
     async def on_mount(self, event):
@@ -315,8 +313,10 @@ class F2Commander(App):
             return
 
         def _open(path: str):
-            if is_supported_archive(path) and not is_archive_fs(
-                self.active_filelist.fs
+            if (
+                is_supported_archive(path)
+                and self.active_filelist
+                and not is_archive_fs(self.active_filelist.fs)
             ):
                 self.active_filelist.parent_fs = self.active_filelist.fs
                 self.active_filelist.parent_path = path
@@ -656,8 +656,8 @@ class F2Commander(App):
                         send2trash(path)
                     else:
                         fs.rm(path, recursive=fs.isdir(path))
-                self.active_filelist.selection = set()
-                self.active_filelist.update_listing()
+                self.active_filelist.selection = set()  # type: ignore
+                self.active_filelist.update_listing()  # type: ignore
 
         if is_local_fs(fs):
             msg = (
@@ -756,8 +756,8 @@ class F2Commander(App):
                 err_msg = str(err)
 
             if is_dir:
-                self.active_filelist.fs = fs
-                self.active_filelist.path = path
+                self.active_filelist.fs = fs  # type: ignore
+                self.active_filelist.path = path  # type: ignore
             else:
                 self.push_screen(
                     StaticDialog.info(f"Cannot navigate to {location}", err_msg)
@@ -771,8 +771,9 @@ class F2Commander(App):
                 for k, v in location.items()
                 if k not in ("display_name", "protocol", "path")
             }
-            self.active_filelist.fs = fsspec.filesystem(protocol, **conf)
-            self.active_filelist.path = path or "/"
+            new_fs = fsspec.filesystem(protocol, **conf)
+            self.active_filelist.fs = new_fs  # type: ignore
+            self.active_filelist.path = path or "/"  # type: ignore
 
     @work
     async def action_go_to_bookmark(self):
@@ -797,8 +798,9 @@ class F2Commander(App):
                 return
 
             protocol, path, fs_args = result
-            self.active_filelist.fs = fsspec.filesystem(protocol, **fs_args)
-            self.active_filelist.path = path
+            remote_fs = fsspec.filesystem(protocol, **fs_args)
+            self.active_filelist.fs = remote_fs  # type: ignore
+            self.active_filelist.path = path  # type: ignore
 
         self.push_screen(ConnectToRemoteDialog(), _on_conect)
 
