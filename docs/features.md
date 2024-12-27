@@ -120,11 +120,13 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [ ] Predefined "remote" file systems can be bookmarked
    - [ ] Autoamtically download missing packages (with user confirmation)
    - [ ] User confirmations for actions needing download/upload
+   - [ ] Test and document SSHFS
 
  - Archival and compression support (read, write):
 
    - [x] All libarchive formats
    - [ ] ZIP update in-place (e.g., edit file)
+   - [ ] "Extract here" ("extract all") command palette action
 
  - Documentation
 

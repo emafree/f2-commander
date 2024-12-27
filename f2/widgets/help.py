@@ -42,12 +42,12 @@ HELP = f"""
  - `Ctrl+f`/`Ctrl+b`, `Ctrl+d`/`Ctrl+u`, `Page Up`/`Page Down`: paginate the list
  - `Enter`: enter the directory or run the default program associated with a
     file type under cursor
- - `Backspace` or `Enter` on the `..` entry: navigate up in a directory tree
+ - `Backspace` (or `Enter` on the `..`): navigate up in a directory tree
  - `b`: go to a bookmarked location (see also "Bookmarks configuration" below)
  - `Ctrl+g`: enter a path to jump to
  - `/`: incremental fuzzy search in the list
  - `R`: refresh the file listing
- - `o`: open the current location in the deafult OS file manager
+ - `o`: open the current location in the default OS file manager
 
 ### Controlling the displayed items
 
@@ -63,13 +63,13 @@ HELP = f"""
 Most tasks for file and directory manipulation are available in the footer menu.
 More tasks are available in the Command Palette (`Ctrl+p`).
 
-According key bindgings use mnemonics for the actions:
+According key bindings use mnemonics for the actions:
 
   - `c`: copy
   - `m`: move
   - etc.
 
-Few excpetions are:
+Few exceptions are:
 
   - `D`: delete (requires upper case `D` to avoid accidental deletions)
 
@@ -81,7 +81,7 @@ Some alternative actions are available with `Shift` key:
 
 Some actions, such as copy, move and delete, can be performed on multiple entries.
 
- - `Space` or `Shift`+navigation: select/unselect an entry under the cursor
+ - `Space` or `Shift`+`j`/`k`/`up`/`down`: select/unselect an entry under the cursor
  - `-`: clear selection
  - `+`: select all displayed entries
  - `*`: invert selection
@@ -97,7 +97,7 @@ Some actions, such as copy, move and delete, can be performed on multiple entrie
 Remote file systems support is in "preview" mode. Most functionality is available,
 but bugs are possible.
 
-To connect to a remote file system user may need to **install additional packages**
+To connect to a remote file system you may need to **install additional packages**
 that are indicated in the "Connect" dialog upon selecting a protocol.
 
 For example, if you installed F2 Commander with `pipx`, and you want to connect
@@ -111,7 +111,7 @@ additional packages for more information.
 
  - `Ctrl+t`: connect to a remote file system
 
-### Remove file systems bookmarks
+### Remote file systems bookmarks
 
 It is possible to persist a connection for a remote file system, to quickly
 reconnect to it without using the connection dialog. See the "Remote file systems"
@@ -122,9 +122,9 @@ section in the "Configuration" below.
 F2 Comamnder can read and extract archives and compressed files supported by
 `libarchive`. A non-exhaustive list includes: ZIP, TAR, XAR, LHA/LZH, ISO 0660
 (optical disc files), cpio, mtree, shar, ar, pax, RAR, MS CAB, 7-Zip, WARC, and more.
-See [libarchive](https://github.com/libarchive/libarchive) for more information.
+See https://github.com/libarchive/libarchive for more information.
 
-To view and extract files from from an archive, open it (`Enter`) and copy files
+To view and extract files from from an archive, open it (`Enter`) and copy the files
 from it (`c`).
 
 ### Creating an archive
@@ -141,7 +141,7 @@ extensions are recognized: `.zip`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tbz2
 F2 Commander comes with these panel types:
 
  - Files: default panel type, for file system discovery and manipulation
- - Preview: shows exceprts of the text files selected in the (Files) other panel
+ - Preview: shows excerpts of the text files selected in the (Files) other panel
  - Help: also invoked with `?` binding, a user manual (this one)
 
 Use `Ctrl+e` and `Ctrl+r` to change the type of the panel on the left and right
@@ -170,14 +170,15 @@ You can use "Show the configuration directory" command from the Command Palette.
 
 Configuration file is a simple list of key-value pairs, similar to how variables are
 declared in Bash. The syntax is that of
-[`.env` files](https://saurabh-kumar.com/python-dotenv/#file-format).
+`.env` files (see https://saurabh-kumar.com/python-dotenv/#file-format).
 Allowed values are Python primitives: strings, numbers, boolean `True` or `False`
 (capitalized) and collection of these values (lists, dicts). Values can be quoted.
 
 A deafult configuration is provided with the application.
 
-The application may too write to the configuration file (e.g., when you change the
-settings within the application itself), but will attempt to preserve its formatting.
+The application may write to the configuration file (e.g., when you change the
+settings within the application itself), but will preserve all other content and
+formatting.
 
 ### Bookmarks
 
@@ -204,8 +205,9 @@ Connection configuration is defined under `file_systems` key, as a list of conne
 objects. Every connection object is a set of key-value pairs, with following keys:
 
  - `'display_name'`: a title that will be shown in the bookmarks list
- - `'protocol'`: a name of the protocol [recognized by fsspec](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.available_protocols)
- - other keys are considered to be [fsspec `storage_options`](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.filesystem)
+ - `'protocol'`: a name of the protocol recognized by fsspec
+ - other keys are considered to be fsspec `storage_options`
+   (see https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.filesystem)
 
 Refer to the documentation of the installed additional packages for more information
 about the remote file system configuration.
@@ -213,10 +215,10 @@ about the remote file system configuration.
 For example, to connect to an ADLS Gen2 storage account:
 
     file_systems = "[
-        {{'display_name': 'My BLOB storage', 'protocol': 'abfs', 'account_name': 'myaccount', 'account_key': 'mykey'}},
+      {{'display_name': 'My BLOB storage', 'protocol': 'abfs', 'account_name': 'myaccount', 'account_key': 'mykey'}},
     ]"
 
-To connect to a remote file system user may need to install additional packages that
+To connect to a remote file system you may need to install additional packages that
 provide `fsspec` implementations for the desired protocol. To find the name of the
 package, if it is missing, use the "Connect" dialog (`Ctrl+t`).
 
@@ -234,7 +236,7 @@ additional packages for more information.
 This application is provided "as is", without warranty of any kind.
 This application is licensed under the Mozilla Public License, v. 2.0.
 You can find a copy of the license at https://mozilla.org/MPL/2.0/
-"""
+"""  # noqa: E501
 
 
 class Help(Static):

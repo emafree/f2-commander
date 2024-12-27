@@ -29,7 +29,7 @@ bookmarks = "[
 file_systems = "[
   {{'display_name': 'Rebex.net Demo FTP server', 'protocol': 'ftp', 'host': 'test.rebex.net', 'username': 'demo', 'password': 'password'}},
 ]"
-""".strip()
+""".strip()  # noqa: E501
 
 
 def config_root() -> Path:

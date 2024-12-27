@@ -796,6 +796,7 @@ class F2Commander(App):
             return
 
         fs = self.active_filelist.fs
+        current_path = self.active_filelist.path
         sources = self.active_filelist.selected_paths()
         if len(sources) == 0:
             return
@@ -813,11 +814,11 @@ class F2Commander(App):
         )
         output_suggestion = (
             posixpath.join(
-                self.active_filelist.path,
+                current_path,
                 posixpath.splitext(posixpath.basename(sources[0]))[0],
             )
             if len(sources) == 1
-            else posixpath.join(self.active_filelist.path)
+            else posixpath.join(current_path, posixpath.basename(current_path))
         ) + ".zip"
         output_path = await self.push_screen_wait(
             InputDialog(
@@ -844,9 +845,7 @@ class F2Commander(App):
 
         async with error_handler_async(self):
             write_archive(
-                self.active_filelist.selected_paths(),
-                self.active_filelist.path,
-                output_path,
+                self.active_filelist.selected_paths(), current_path, output_path
             )
             self.active_filelist.reset_selection()
             self.active_filelist.update_listing()
