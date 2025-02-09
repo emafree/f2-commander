@@ -20,10 +20,10 @@ FileList DataTable {
   background: $background;
 
   &:focus {
-    /* don't higlight activate table background (default is 5% in DataTable): */
+    /* don't higlight a focused table background (default is 5% in DataTable): */
     background-tint: $foreground 0%;
 
-    /* highlight activate table header more (default is 5% in DataTable): */
+    /* highlight a focused table header more (default is 5% in DataTable): */
     & > .datatable--header {
         background-tint: $foreground 20%;
     }

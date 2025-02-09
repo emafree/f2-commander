@@ -1,5 +1,6 @@
 In (somewhat) no particular order:
 
+- Replace Help by a man page?
 - Setup trusted publishing for future PyPI uploads
 - Automate the tests
 - CI

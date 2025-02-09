@@ -40,13 +40,16 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
          last modification time, show and follow symlinks, etc.
          - [ ] Highlight broken links
    - [x] Vim-like (up/down j/k g/G ctrl+f/d/b/u) navigation
+         - [ ] Mouse scrolling
    - [x] Navigate "up" (with backspace or with the ".." entry)
    - [x] Order entries by name, size, time (last modification time)
-   - [x] Filter entries with glob
+         - [ ] Remembers non-default ordering (not by name asc) for directories
+               (or, when explicitly saved?)
    - [x] Directory summary in the file listing footer
    - [x] "List dirs first/inline" toggle
    - [x] Ordering by name case sensitivity on/off
    - [x] Quick search: navigate file list by typing in the file names
+         - [ ] When scrolling to an item, put in in the middle of the screen
    - [x] Navigate to path (enter path, with auto-completion)
    - [x] Configurable bookmarks. Predefined bookmarks to typical desktop directories
          like Downloads, Documents, etc.
@@ -62,6 +65,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
  - File and directory manipulation
 
    - [x] Basic operations like copy, move, move to trash, etc.
+     - [ ] Handles "Trash" errors (e.g., when no Trash available in a server OS, etc.)
      - [x] Confirmation dialogs and user inputs (destination path, etc.)
      - [ ] Copy/Move to a non-existing dir to `mkdir -p` upon confirmation
      - [ ] Copy same file in same dir to create a copy with a suffix
@@ -72,6 +76,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
      - [ ] Progress bar for long operations (incl. opening large archives,
            copying, etc.)
      - [ ] Option to delete files (as opposed to moving to trash)
+     - [ ] After delete (move to Trash), keep the cursor on an adjacent item
    - [x] View and edit files using user default viewer and editor
          - [ ] File-type view (and preview?) tools (e.g., why not preview
                Parquet files, etc.)

@@ -17,7 +17,7 @@ async def test_startup():
     async with app.run_test() as pilot:  # noqa: F841
 
         filelist = app.active_filelist
-        assert filelist.path == os.getcwd()
+        assert filelist.node.path == os.getcwd()
 
         names: list[str] = [key.value for key in filelist.table.rows]  # type: ignore
         assert ".." in names

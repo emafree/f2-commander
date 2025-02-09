@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [[ -z "$(poetry env list)" ]]; then
     poetry install --with dev
 fi
