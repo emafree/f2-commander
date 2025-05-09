@@ -103,8 +103,29 @@ LIBARCHIVE_WRITE_EXTENSIONS = {
 }
 
 
+class NormArchFileSystem:
+    """
+    Archive file systems' `.get` behavior differs from that of remote file
+    system implementations: it expects the target path to be a non-existing path
+    that corresponds to the final name of a file or a directory to be extracted.
+    """
+
+    def get(self, rpath: str, lpath: str, *args, **kwargs):
+        if os.path.isdir(lpath):
+            lpath = os.path.join(lpath, os.path.basename(rpath))
+        super().get(rpath, lpath, *args, **kwargs)  # type: ignore
+
+
+class NormZipFileSystem(NormArchFileSystem, ZipFileSystem):
+    pass
+
+
+class NormLibArchiveFileSystem(NormArchFileSystem, LibArchiveFileSystem):
+    pass
+
+
 def is_archive_fs(fs: AbstractFileSystem) -> bool:
-    return isinstance(fs, LibArchiveFileSystem) or isinstance(fs, ZipFileSystem)
+    return isinstance(fs, NormLibArchiveFileSystem) or isinstance(fs, NormZipFileSystem)
 
 
 def is_archive(path: str) -> bool:
@@ -129,9 +150,9 @@ def open_archive(path: str) -> Optional[AbstractFileSystem]:
 
     archive_fs = None
     if mimetypes.guess_type(path)[0] in ZIP_MIMETYPES:
-        archive_fs = _try_open(ZipFileSystem)
-    elif LibArchiveFileSystem:
-        archive_fs = _try_open(LibArchiveFileSystem)
+        archive_fs = _try_open(NormZipFileSystem)
+    else:
+        archive_fs = _try_open(NormLibArchiveFileSystem)
     return archive_fs
 
 

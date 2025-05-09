@@ -189,13 +189,13 @@ class FileList(Static):
         self.watch_sort_options(None, self.sort_options)
 
     @property
-    def selection(self) -> set[Node]:
+    def selection(self) -> list[Node]:
         if len(self._selection) > 0:
-            return self._selection
+            return list(self._selection)
         elif self.cursor_node != self.node.parent:
-            return set([self.cursor_node])
+            return [self.cursor_node]
         else:
-            return set()
+            return []
 
     def reset_selection(self):
         self._selection = set()
@@ -228,14 +228,14 @@ class FileList(Static):
     def _row_style(self, node: Node) -> str:
         style = ""
 
-        if node.is_dir:
+        if node.is_link:
+            style = "underline"
+        elif node.is_dir:
             style = "bold"
         elif node.is_executable:
             style = self.app.theme_.error or "red"  # type: ignore
         elif node.is_hidden:
             style = "dim"
-        elif node.is_link:
-            style = "underline"
         elif node.is_archive:
             style = self.app.theme_.accent or "yellow"  # type: ignore
 

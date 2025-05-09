@@ -176,24 +176,16 @@ def breadth_first_walk(
         dirs_to_walk = next_dirs_to_walk
 
 
-def check_copy_conflicts(
-    src_fs: AbstractFileSystem,
+def copy_final_path(
     src: str,
     dst_fs: AbstractFileSystem,
     dst: str,
-) -> Optional[str]:
-    dst_path = (
-        posixpath.join(dst, posixpath.basename(src)) if dst_fs.isdir(dst) else dst
-    )
-    if (
-        src_fs.isfile(src)
-        and dst_fs.isfile(dst_path)
-        or src_fs.isdir(src)
-        and dst_fs.isdir(dst_path)
-    ):
-        return dst_path
-    else:
-        return None
+) -> str:
+    """
+    Compute actual final destination path for a given source,
+    if it would be copied or moved to a given destination path.
+    """
+    return posixpath.join(dst, posixpath.basename(src)) if dst_fs.isdir(dst) else dst
 
 
 def copy(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: str):

@@ -22,6 +22,9 @@ It also lists all known bugs (see the **KNOWN BUG** tags).
 **KNOWN BUG**: long paths do not fit the screen and are truncated in multiple
 places (e.g., panel header, labels in dialogs, etc.) - to substitue with '...'
 
+**KNOWN BUG**: sometimes (?) when resizing a window, columns stay very small at
+first, until any UI action (e.g., switch between panels)
+
 2. Basic navigation
 
  - `j`/`k` and `up`/`down` move the cursor one row at a time.
