@@ -6,10 +6,8 @@
 
 import posixpath
 import shutil
-from pathlib import Path
-from typing import Optional
 
-from fsspec import AbstractFileSystem, filesystem
+from fsspec import filesystem
 from rich.syntax import Syntax
 from textual.app import ComposeResult
 from textual.reactive import reactive
@@ -86,7 +84,7 @@ class Preview(Static):
         recursively as long as the output fits the screen."""
 
         # collect paths to show, breadth-first, but at most a screenful:
-        collected_paths = []
+        collected_paths = []  # type: ignore
         for i, p in enumerate(
             breadth_first_walk(node.fs, node.path, config.show_hidden)
         ):

@@ -5,7 +5,9 @@
 # Copyright (c) 2024 Timur Rubeko
 
 """
-Helper functions for fsspec file systems and their entries
+Helper functions for fsspec file systems and their entries.
+
+Does not use the Node abstraction on purpose, uses lower-level APIs only.
 """
 
 import mimetypes
@@ -20,6 +22,7 @@ from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from fsspec import AbstractFileSystem
+from send2trash import send2trash
 
 TEXT_MIMETYPES = [
     # in addition to text/*, these are also considered to be text files:
@@ -173,6 +176,26 @@ def breadth_first_walk(
         dirs_to_walk = next_dirs_to_walk
 
 
+def check_copy_conflicts(
+    src_fs: AbstractFileSystem,
+    src: str,
+    dst_fs: AbstractFileSystem,
+    dst: str,
+) -> Optional[str]:
+    dst_path = (
+        posixpath.join(dst, posixpath.basename(src)) if dst_fs.isdir(dst) else dst
+    )
+    if (
+        src_fs.isfile(src)
+        and dst_fs.isfile(dst_path)
+        or src_fs.isdir(src)
+        and dst_fs.isdir(dst_path)
+    ):
+        return dst_path
+    else:
+        return None
+
+
 def copy(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: str):
     """Copy file or directory in the same or between different file systems"""
     if src_fs == dst_fs:  # same file system (both local or both same remote)
@@ -267,6 +290,37 @@ def move(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: 
             shutil.rmtree(tmp_dir_path)
 
 
+def rename(fs: AbstractFileSystem, path: str, new_name: str):
+    new_path = posixpath.join(posixpath.dirname(path), new_name)
+    if not fs.exists(new_path):
+        fs.move(path, new_path)
+    else:
+        raise FileExistsError(f"File or directory already exists: {new_path}")
+
+
+def delete(fs: AbstractFileSystem, path: str):
+    if _is_local_fs(fs):
+        send2trash(path)
+    else:
+        fs.rm(path, recursive=fs.isdir(path))
+
+
+def mkdir(fs: AbstractFileSystem, path: str, new_name: str):
+    new_path = posixpath.join(path, new_name)
+    if not fs.exists(new_path):
+        fs.makedirs(new_path)
+    else:
+        raise FileExistsError(f"File or directory already exists: {new_path}")
+
+
+def mkfile(fs: AbstractFileSystem, path: str, new_name: str):
+    new_path = posixpath.join(path, new_name)
+    if not fs.exists(new_path):
+        fs.touch(new_path)
+    else:
+        raise FileExistsError(f"File or directory already exists: {new_path}")
+
+
 def _is_local_fs(fs: AbstractFileSystem) -> bool:
     return "file" in fs.protocol
 
@@ -300,7 +354,7 @@ def shorten(
         short = path
         while len(short) > width_target - 1 and len(parts) > 3:
             mid = len(parts) // 2
-            parts = parts[:mid] + parts[mid + 1 :]
+            parts = parts[:mid] + parts[mid + 1 :]  # noqa (space before :)
             short = lead + posixpath.join(*parts[:mid], placeholder, *parts[mid:])
         if len(short) > width_target:  # if still too long, also truncate:
             short = shorten(short, width_target, method="truncate")

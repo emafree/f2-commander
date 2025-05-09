@@ -15,7 +15,6 @@ from typing import Optional, Union
 
 import fsspec
 from rich.text import Text
-from send2trash import send2trash
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -24,6 +23,7 @@ from textual.containers import Horizontal
 from textual.css.query import NoMatches
 from textual.reactive import reactive
 from textual.theme import Theme
+from textual.widget import Widget
 from textual.widgets import Footer
 
 from .commands import Command
@@ -31,7 +31,7 @@ from .config import config, set_user_has_accepted_license, user_has_accepted_lic
 from .errors import error_handler_async, with_error_handler
 from .fs.arch import is_archive, open_archive, write_archive
 from .fs.node import Node
-from .fs.util import copy, move
+from .fs.util import check_copy_conflicts, copy, delete, mkdir, mkfile, move, rename
 from .shell import editor, native_open, shell, viewer
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
@@ -125,13 +125,11 @@ class F2Commander(App):
             "mkfile",
             "Create a file",
             "Create a new file (touch)",
-            None,
         ),
         Command(
             "archive",
             "Archive / compress files",
             "Archive and optionally compress current selection",
-            None,
         ),
         Command(
             "connect",
@@ -143,25 +141,21 @@ class F2Commander(App):
             "toggle_dirs_first",
             "Toggle directories first",
             "Show directories first or ordered among files",
-            None,
         ),
         Command(
             "toggle_order_case_sensitive",
             "Toggle case sensitive name order",
             "Whether name ordering is case sensitive or not",
-            None,
         ),
         Command(
             "change_theme",
             "Change theme",
             "Change the theme (colors)",
-            None,
         ),
         Command(
             "about",
             "About",
             "Information about this software",
-            None,
         ),
     ]
     BINDINGS = [
@@ -218,26 +212,30 @@ class F2Commander(App):
         self.show_hidden = not self.show_hidden
 
     def watch_show_hidden(self, old: bool, new: bool):
-        self.left.show_hidden = new
-        self.right.show_hidden = new
+        if self.left:
+            self.left.show_hidden = new  # type: ignore
+        if self.right:
+            self.right.show_hidden = new  # type: ignore
         config.show_hidden = new
 
     def action_toggle_dirs_first(self):
         self.dirs_first = not self.dirs_first
 
-    # TODO: save default value to user options, restore on start
     def watch_dirs_first(self, old: bool, new: bool):
-        self.left.dirs_first = new
-        self.right.dirs_first = new
+        if self.left:
+            self.left.dirs_first = new  # type: ignore
+        if self.right:
+            self.right.dirs_first = new  # type: ignore
         config.dirs_first = new
 
     def action_toggle_order_case_sensitive(self):
         self.order_case_sensitive = not self.order_case_sensitive
 
-    # TODO: save default value to user options, restore on start
     def watch_order_case_sensitive(self, old: bool, new: bool):
-        self.left.order_case_sensitive = new
-        self.right.order_case_sensitive = new
+        if self.left:
+            self.left.order_case_sensitive = new  # type: ignore
+        if self.right:
+            self.right.order_case_sensitive = new  # type: ignore
         config.order_case_sensitive = new
 
     def action_swap_panels(self):
@@ -265,20 +263,19 @@ class F2Commander(App):
         self.panel_right.action_change_panel()
 
     @property
-    def left(self):
+    def left(self) -> Optional[Widget]:
         try:
             return self.query_one("#left > *")
         except NoMatches:
             return None
 
     @property
-    def right(self):
+    def right(self) -> Optional[Widget]:
         try:
             return self.query_one("#right > *")
         except NoMatches:
             return None
 
-    # FIXME: left/right are not necessarily FileList; make Optional and handle None
     @property
     def active_filelist(self) -> Optional[FileList]:
         for panel in (self.left, self.right):
@@ -316,21 +313,32 @@ class F2Commander(App):
         def _open(path: str):
             if is_archive(path) and (archive_fs := open_archive(path)):
                 archive_node = Node.from_path(archive_fs, "", parent=node)
-                self.active_filelist.node = archive_node
+                self.active_filelist.node = archive_node  # type: ignore
                 self.refresh_bindings()
             else:
                 open_cmd = native_open()
                 if open_cmd is not None:
                     with self.app.suspend():
-                        subprocess.run(open_cmd + [path])
+                        completed_process = subprocess.run(open_cmd + [path])
                     self.app.refresh()
+                    exit_code = completed_process.returncode
+                    if exit_code != 0:
+                        msg = f"Application exited with an error ({exit_code})"
+                        self.push_screen(StaticDialog.warning("Warning", msg))
                 else:
-                    # TODO: alert the user
-                    pass
+                    self.push_screen(
+                        StaticDialog.error(
+                            "Error",
+                            "No application found to open the file",
+                        )
+                    )
 
         def _open_temp(path: str):
-            _open(path)
-            os.unlink(path)
+            try:
+                _open(path)
+            finally:
+                # FIXME: does it work for archives? file removed too early?
+                os.unlink(path)
 
         if node.is_local:
             _open(node.path)
@@ -351,13 +359,13 @@ class F2Commander(App):
                 # only this does:
                 cont_fn(tmp_file_path)
 
-        msg = (
-            "The file is not in the local file system. "
-            "It will be downloaded first. Continue?"
-        )
         if node.is_archive:
             on_download(True)
         else:
+            msg = (
+                "The file is not in the local file system. "
+                "It will be downloaded first. Continue?"
+            )
             self.push_screen(
                 StaticDialog(
                     title="Download?",
@@ -405,8 +413,10 @@ class F2Commander(App):
                 self.push_screen(StaticDialog.error("Error", "No viewer found!"))
 
         def _view_temp(path: str):
-            _view(path)
-            os.unlink(path)
+            try:
+                _view(path)
+            finally:
+                os.unlink(path)
 
         if node.is_local:
             _view(node.path)
@@ -428,7 +438,7 @@ class F2Commander(App):
                 exit_code = completed_process.returncode
                 if exit_code != 0:
                     msg = f"Editor exited with an error ({exit_code})"
-                    self.push_screen(StaticDialog.warning("Error", msg))
+                    self.push_screen(StaticDialog.warning("Warning", msg))
             else:
                 self.push_screen(StaticDialog.error("Error", "No editor found!"))
 
@@ -437,7 +447,7 @@ class F2Commander(App):
             _edit(path)
             new_mtime = Path(path).stat().st_mtime
             if new_mtime > prev_mtime:
-                self._upload(fs, path, src, cont_fn=lambda p: os.unlink(p))
+                self._upload(node.fs, path, node.path, cont_fn=lambda p: os.unlink(p))
 
         if node.is_local:
             _edit(node.path)
@@ -490,47 +500,26 @@ class F2Commander(App):
         )
 
     async def _copy_one(self, src_fs, src: str, dst_fs, dst: str):
-        if src_fs.isfile(src):
-            dst_path = (
-                posixpath.join(dst, posixpath.basename(src))
-                if dst_fs.isdir(dst)
-                else dst
-            )
-            if dst_fs.isfile(dst_path):
-                msg = f"{dst_path} already exists. Overwrite?"
-                if not await self.push_screen_wait(
-                    StaticDialog(
-                        title="Overwrite?",
-                        message=msg,
-                        btn_ok="Overwrite",
-                        style=Style.WARNING,
-                    )
-                ):
-                    return
-
-        elif src_fs.isdir(src):
-            dst_path = (
-                posixpath.join(dst, posixpath.basename(src))
-                if dst_fs.isdir(dst)
-                else dst
-            )
-            if dst_fs.exists(dst_path):
+        conflict_path = check_copy_conflicts(src_fs, src, dst_fs, dst)
+        if conflict_path is not None:
+            if src_fs.isfile(src):
+                msg = f"{conflict_path} already exists. Overwrite?"
+                title = "Overwrite?"
+                btn_ok = "Overwrite"
+            elif src_fs.isdir(src):
                 msg = (
-                    f"{dst_path} already exists.\n"
+                    f"{conflict_path} already exists.\n"
                     "Merge directories and overwrite existing files?"
                 )
-                if not await self.push_screen_wait(
-                    StaticDialog(
-                        title="Merge and overwrite?",
-                        message=msg,
-                        btn_ok="Merge",
-                        style=Style.WARNING,
-                    )
-                ):
-                    return
+                title = "Merge and overwrite?"
+                btn_ok = "Merge"
+            if not await self.push_screen_wait(
+                StaticDialog(title, msg, btn_ok, style=Style.WARNING)
+            ):
+                return
 
         async with error_handler_async(self):
-            return copy(src_fs, src, dst_fs, dst)
+            copy(src_fs, src, dst_fs, dst)
 
     @work
     async def action_move(self):
@@ -564,17 +553,10 @@ class F2Commander(App):
         self.inactive_filelist.update_listing()
 
     async def _move_one(self, src_fs, src: str, dst_fs, dst: str):
-        if src_fs.isfile(src):
-            dst_path = (
-                posixpath.join(dst, posixpath.basename(src))
-                if dst_fs.isdir(dst)
-                else dst
-            )
-            if dst_fs.isfile(dst_path):
-                dst = dst_path  # CAUTION: overriding with exact **file** path
-                # ^^^^^^ : if not done, eventually shutil.move raises an error
-                # (try shutil.move('a', 'b') where 'b' is a dir with a file 'a')
-                msg = f"{dst_path} already exists. Overwrite?"
+        conflict_path = check_copy_conflicts(src_fs, src, dst_fs, dst)
+        if conflict_path is not None:
+            if src_fs.isfile(src):
+                msg = f"{conflict_path} already exists. Overwrite?"
                 if not await self.push_screen_wait(
                     StaticDialog(
                         title="Overwrite?",
@@ -584,11 +566,26 @@ class F2Commander(App):
                     )
                 ):
                     return
-
-        # CAUTION:
-        # Move has no merge for directories intentionally
-        # It is considered way too ambiguous and, if necessary,
-        # can be achieved otherwise (copy, then delete).
+                else:
+                    # IMPORTANT: overriding dst with the exact target **file** path
+                    # if not done, eventually shutil.move raises an error
+                    # (try shutil.move('a', 'b') where 'b' is a dir with a file 'a')
+                    dst = conflict_path
+            elif src_fs.isdir(src):
+                # Move has no merge for directories intentionally.
+                # It is considered way too ambiguous and, if necessary,
+                # can be achieved otherwise (copy, then delete).
+                msg = f"{conflict_path} already exists."
+                self.push_screen(
+                    StaticDialog(
+                        title="Destination exists",
+                        message=msg,
+                        btn_ok=None,
+                        btn_cancel="Cancel",
+                        style=Style.WARNING,
+                    )
+                )
+                return
 
         async with error_handler_async(self):
             return move(src_fs, src, dst_fs, dst)
@@ -616,12 +613,11 @@ class F2Commander(App):
             return
 
         async with error_handler_async(self):
-            # FIXME: this should not be part of the action implementation?
-            node.fs.mv(node.path, posixpath.join(node.parent.path, new_name))
+            rename(node.fs, node.path, new_name)
 
         self.active_filelist.reset_selection()
         self.active_filelist.update_listing()
-        self.active_filelist.scroll_to_entry(posixpath.basename(dst))
+        self.active_filelist.scroll_to_entry(new_name)
 
     @work
     async def action_delete(self):
@@ -644,18 +640,14 @@ class F2Commander(App):
             return
 
         async with error_handler_async(self):
-            # FIXME: this should not be part of the action implementation?
             for node in nodes:
-                if node.is_local:
-                    send2trash(node.path)
-                else:
-                    node.fs.rm(node.path, recursive=node.is_dir)
-            self.active_filelist.selection = set()  # type: ignore
-            self.active_filelist.update_listing()  # type: ignore
+                delete(node.fs, node.path)
+
+        self.active_filelist.reset_selection()
+        self.active_filelist.update_listing()
 
     @work
     async def action_mkdir(self):
-        # FIXME: this should be just known in the model at the app level?
         node = self.active_filelist.node
 
         new_name = await self.push_screen_wait(
@@ -665,12 +657,10 @@ class F2Commander(App):
             return
 
         async with error_handler_async(self):
-            new_dir_path = posixpath.join(node.path, new_name)
-            node.fs.makedirs(new_dir_path, exist_ok=True)
-            self.active_filelist.update_listing()
-            self.active_filelist.scroll_to_entry(
-                posixpath.dirname(new_name) or new_name
-            )
+            mkdir(node.fs, node.path, new_name)
+
+        self.active_filelist.update_listing()
+        self.active_filelist.scroll_to_entry(new_name)
 
     @work
     async def action_mkfile(self):
@@ -688,10 +678,10 @@ class F2Commander(App):
             return
 
         async with error_handler_async(self):
-            new_file_path = posixpath.join(node.path, new_name)
-            node.fs.touch(new_file_path)
-            self.active_filelist.update_listing()
-            self.active_filelist.scroll_to_entry(new_name)
+            mkfile(node.fs, node.path, new_name)
+
+        self.active_filelist.update_listing()
+        self.active_filelist.scroll_to_entry(new_name)
 
     def action_shell(self):
         node = self.active_filelist.node
@@ -710,37 +700,6 @@ class F2Commander(App):
                 self.push_screen(StaticDialog.warning("Warning", msg))
         else:
             self.push_screen(StaticDialog.error("Error", "No shell found!"))
-
-    def _on_go_to(self, location: Union[str, dict, None]):
-        if location is None:
-            return
-
-        if isinstance(location, str):
-            try:
-                node = Node.from_url(location)
-                err_msg = f"{location} is not a directory" if not node.is_dir else None
-            except Exception as err:
-                node = None
-                err_msg = str(err)
-
-            if node and node.is_dir:
-                self.active_filelist.node = node
-            else:
-                self.push_screen(
-                    StaticDialog.info(f"Cannot navigate to {location}", err_msg)
-                )
-
-        if isinstance(location, dict):
-            protocol = location["protocol"]
-            path = location.get("path")
-            conf = {
-                k: v
-                for k, v in location.items()
-                if k not in ("display_name", "protocol", "path")
-            }
-            fs = fsspec.filesystem(protocol, **conf)
-            node = Node.from_url(fs.unstrip_protocol("/"))
-            self.active_filelist.node = node
 
     @work
     async def action_archive(self):
@@ -803,6 +762,37 @@ class F2Commander(App):
             self.active_filelist.update_listing()
             self.active_filelist.scroll_to_entry(posixpath.basename(output_path))
 
+    def _on_go_to(self, location: Union[str, dict, None]):
+        if location is None:
+            return
+
+        if isinstance(location, str):
+            try:
+                node = Node.from_url(location)
+                err_msg = f"{location} is not a directory" if not node.is_dir else None
+            except Exception as err:
+                node = None
+                err_msg = str(err)
+
+            if node and node.is_dir:
+                self.active_filelist.node = node  # type: ignore
+            else:
+                self.push_screen(
+                    StaticDialog.info(f"Cannot navigate to {location}", err_msg)
+                )
+
+        if isinstance(location, dict):
+            protocol = location["protocol"]
+            path = location.get("path")
+            conf = {
+                k: v
+                for k, v in location.items()
+                if k not in ("display_name", "protocol", "path")
+            }
+            fs = fsspec.filesystem(protocol, **conf)
+            node = Node.from_path(fs, path or "/")
+            self.active_filelist.node = node  # type: ignore
+
     @work
     async def action_go_to_bookmark(self):
         location = await self.app.push_screen_wait(GoToBookmarkDialog())
@@ -826,7 +816,7 @@ class F2Commander(App):
         async with error_handler_async(self):
             protocol, path, fs_args = connection_params
             remote_fs = fsspec.filesystem(protocol, **fs_args)
-            node = Node.from_url(remote_fs.unstrip_protocol(path))
+            node = Node.from_path(remote_fs, path or "/")
             self.active_filelist.node = node
 
     @work

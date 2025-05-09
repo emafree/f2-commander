@@ -5,16 +5,12 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import dataclasses
-import fnmatch
 import functools
-import posixpath
 import subprocess
 import time
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional, Tuple
 
-from fsspec import AbstractFileSystem, filesystem
 from humanize import naturalsize
 from rich.text import Text
 from textual import events, on, work
@@ -32,8 +28,6 @@ from f2.config import config_root
 from f2.fs.node import Node
 from f2.fs.util import shorten
 from f2.shell import native_open
-
-from .dialogs import InputDialog
 
 
 class TextAndValue(Text):
@@ -113,7 +107,6 @@ class FileList(Static):
             "navigate_to_config",
             "Show the configuration directory",
             "Open the user's configuration directory in the file list",
-            None,
         ),
     ]
     BINDINGS = [  # type: ignore
@@ -196,13 +189,13 @@ class FileList(Static):
         self.watch_sort_options(None, self.sort_options)
 
     @property
-    def selection(self) -> list[Node]:
+    def selection(self) -> set[Node]:
         if len(self._selection) > 0:
             return self._selection
         elif self.cursor_node != self.node.parent:
-            return [self.cursor_node]
+            return set([self.cursor_node])
         else:
-            return []
+            return set()
 
     def reset_selection(self):
         self._selection = set()
@@ -210,7 +203,7 @@ class FileList(Static):
     def add_selection(self, node: Node):
         if node == self.node.parent:
             return
-        self._selection.add(name)
+        self._selection.add(node)
 
     def remove_selection(self, node: Node):
         self._selection.remove(node)
@@ -238,17 +231,17 @@ class FileList(Static):
         if node.is_dir:
             style = "bold"
         elif node.is_executable:
-            style = self.app.theme_.error or "red"
+            style = self.app.theme_.error or "red"  # type: ignore
         elif node.is_hidden:
             style = "dim"
         elif node.is_link:
             style = "underline"
         elif node.is_archive:
-            style = self.app.theme_.accent or "yellow"
+            style = self.app.theme_.accent or "yellow"  # type: ignore
 
-        if node.name in self._selection:
+        if node in self._selection:
             # adds a background color:
-            style += f" {theme.accent or 'yellow'} italic"
+            style += f" {self.app.theme_.accent or 'yellow'} italic"  # type: ignore
 
         return style
 
@@ -436,7 +429,7 @@ class FileList(Static):
     def watch_node(self, old_node: Node, new_node: Node):
         # if trying to navigate to a file, navigate to its parent dir:
         if not new_node.is_dir:
-            self.set_reactive(FileList.node, new_node.parent)
+            self.set_reactive(FileList.node, new_node.parent)  # type: ignore
 
         self.reset_selection()
         self.update_listing()
@@ -603,7 +596,8 @@ class FileList(Static):
         elif event.key in ("ctrl+b", "ctrl+u"):
             self.table.action_page_up()
         elif event.key == "backspace":
-            self.node = self.node.parent
+            if self.node.parent:
+                self.node = self.node.parent
         elif event.key == "R":
             self.update_listing()
         elif event.key == "enter":

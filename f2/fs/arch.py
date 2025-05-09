@@ -5,7 +5,9 @@
 # Copyright (c) 2024 Timur Rubeko
 
 """
-Routines for working with archives
+Routines for working with archives.
+
+Does not use the Node abstraction on purpose, uses lower-level APIs only.
 """
 
 import mimetypes
@@ -115,7 +117,7 @@ def is_archive(path: str) -> bool:
     )
 
 
-def open_archive(path: str) -> Optional[LibArchiveFileSystem]:
+def open_archive(path: str) -> Optional[AbstractFileSystem]:
 
     def _try_open(impl):
         try:
