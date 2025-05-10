@@ -4,67 +4,56 @@
 #
 # Copyright (c) 2024 Timur Rubeko
 
-import mimetypes
 import posixpath
 import shutil
-import subprocess
-from pathlib import Path
-from typing import Optional
 
-from fsspec import AbstractFileSystem, filesystem
+from fsspec import filesystem
 from rich.syntax import Syntax
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
 
-from ..config import config
-from ..fs import breadth_first_walk, is_local_fs
-
-OTHER_TEXT_MIMETYPES = [
-    "application/json",
-    "application/xml",
-    "application/xml-dtd",
-    "application/x-sh",
-    "application/x-sql",
-    "application/x-latex",
-    "application/x-msdownload",  # .bat
-    "message/rfc822",  # .eml et co
-]
+from f2.config import config
+from f2.fs.node import Node
+from f2.fs.util import breadth_first_walk, is_text_file, shorten
 
 
 class Preview(Static):
 
-    preview_path = reactive(Path.cwd().as_posix(), recompose=True)
+    node = reactive(Node.cwd(), recompose=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fs = filesystem("file")
 
     def compose(self) -> ComposeResult:
-        yield Static(self._format(self.preview_path))
+        yield Static(self._format(self.node))
 
     def on_mount(self):
-        self.preview_path = self.app.active_filelist.cursor_path
+        self.node = self.app.active_filelist.cursor_node
 
     # FIXME: push_message (in)directy to the "other" panel only?
-    def on_other_panel_selected(self, fs: AbstractFileSystem, path: str):
-        self.fs = fs
-        self.preview_path = path
+    def on_other_panel_selected(self, node: Node):
+        self.node = node
 
-    def watch_preview_path(self, old: str, new: str):
+    def watch_node(self, old: Node, new: Node):
         parent: Widget = self.parent  # type: ignore
-        parent.border_title = new
+        parent.border_title = shorten(
+            new.path, width_target=self.size.width, method="slice"
+        )
         parent.border_subtitle = None
 
-    def _format(self, path: str):
-        if path is None:
+    def _format(self, node: Node):
+        if node is None:
             return ""
-        elif self.fs.isdir(path):
-            return self._dir_tree(path)
-        elif self.fs.isfile(path) and self._is_text(path):
+        elif node.is_dir:
+            return self._dir_tree(node)
+        elif node.is_file and is_text_file(node.path):
             try:
-                return Syntax(code=self._head(path), lexer=Syntax.guess_lexer(path))
+                return Syntax(
+                    code=self._head(node), lexer=Syntax.guess_lexer(node.path)
+                )
             except UnicodeDecodeError:
                 # file appears to be a binary file after all
                 return "Cannot preview, probably not a text file"
@@ -72,43 +61,15 @@ class Preview(Static):
             # TODO: leavey a user a possibility to force the preview?
             return "Cannot preview, probably not a text file"
 
-    def _is_text(self, path) -> Optional[bool]:
-        """Attempt to detect if a file is a text file. Assume that the result may be
-        wrong and the file may turn out to be binary.
-        An altenrative implementation would use python-magic, but it creates a
-        dependency on libmagic, which is not present on all systems."""
-
-        mime_type = None
-
-        if is_local_fs(self.fs):
-            try:
-                mime_type = subprocess.check_output(
-                    ["file", "--brief", "--mime-type", path]
-                ).decode("utf-8")
-            except subprocess.SubprocessError:
-                pass
-
-        if mime_type is None:
-            mime_type = mimetypes.guess_type(path)[0]
-
-        # NOTE: chose not to use chardet to avoid opening all remote files for a test
-        # (having said that, may use chardet in the local fs, and fallbak to the
-        # mimetype check in the remote fs)
-        return mime_type is not None and (
-            mime_type.startswith("text/")
-            or mime_type.endswith("+xml")
-            or mime_type.endswith("+json")
-            or mime_type in OTHER_TEXT_MIMETYPES
-        )
-
     @property
     def _height(self):
         """Viewport is not higher than this number of lines"""
+        # FIXME: use Textual API instead?
         return shutil.get_terminal_size(fallback=(80, 200))[1]
 
-    def _head(self, path: str):
+    def _head(self, node: Node) -> str:
         lines = []
-        with self.fs.open(path, "r") as f:
+        with node.fs.open(node.path, "r") as f:
             try:
                 for _ in range(self._height):
                     lines.append(next(f))
@@ -116,15 +77,17 @@ class Preview(Static):
                 pass
         return "".join(lines)
 
-    def _dir_tree(self, path):
+    def _dir_tree(self, node: Node) -> str:
         """To give a best possible overview of a directory, show it traversed
         breadth-first. Some directories may not be walked in a latter case, but
         top-level will be shown first, then the second level exapnded, and so on
         recursively as long as the output fits the screen."""
 
         # collect paths to show, breadth-first, but at most a screenful:
-        collected_paths = []
-        for i, p in enumerate(breadth_first_walk(self.fs, path, config.show_hidden)):
+        collected_paths = []  # type: ignore
+        for i, p in enumerate(
+            breadth_first_walk(node.fs, node.path, config.show_hidden)
+        ):
             if i > self._height:
                 break
             if posixpath.dirname(p) in collected_paths:
@@ -141,9 +104,9 @@ class Preview(Static):
                 collected_paths.append(p)
 
         # format paths:
-        lines = [path]
+        lines = [node.path]
         for p in collected_paths:
-            name = posixpath.relpath(p, path)
+            name = posixpath.relpath(p, node.path)
             if self.fs.isdir(p):
                 name += "/"
             lines.append(f"┣ {name}")

@@ -6,6 +6,11 @@
 
 
 class Command:
+    """
+    A helper class to define an abstract command that is present in the Command
+    Palette, and can optionally be bound to a key.
+    """
+
     def __init__(self, action, name, description, binding_key=None):
         self.action = action
         self.name = name

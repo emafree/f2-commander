@@ -4,15 +4,13 @@
 #
 # Copyright (c) 2024 Timur Rubeko
 
+import dataclasses
 import functools
-import posixpath
 import subprocess
 import time
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional, Tuple
 
-from fsspec import AbstractFileSystem, filesystem
 from humanize import naturalsize
 from rich.text import Text
 from textual import events, on, work
@@ -25,12 +23,11 @@ from textual.reactive import reactive
 from textual.widgets import DataTable, Input, Static
 from textual.widgets.data_table import RowDoesNotExist
 
-from f2.fs import DirEntry, DirList, is_local_fs, list_dir
-
-from ..commands import Command
-from ..config import config_root
-from ..shell import native_open
-from .dialogs import InputDialog
+from f2.commands import Command
+from f2.config import config_root
+from f2.fs.node import Node
+from f2.fs.util import shorten
+from f2.shell import native_open
 
 
 class TextAndValue(Text):
@@ -89,12 +86,6 @@ class FileList(Static):
             "T",
         ),
         Command(
-            "find",
-            "Find / filter with glob",
-            "Filter files to show only those matching a glob",
-            "f",
-        ),
-        Command(
             "search",
             "Incremental search",
             "Incremental search in the file list, with fuzzy matching",
@@ -116,7 +107,6 @@ class FileList(Static):
             "navigate_to_config",
             "Show the configuration directory",
             "Open the user's configuration directory in the file list",
-            None,
         ),
     ]
     BINDINGS = [  # type: ignore
@@ -133,48 +123,45 @@ class FileList(Static):
     TIME_FORMAT = "%b %d %H:%M"
 
     class Selected(Message):
-        def __init__(self, fs: AbstractFileSystem, path: str, file_list: "FileList"):
-            self.fs = fs
-            self.path = path
-            self.file_list = file_list
+        def __init__(self, node: Node, control: "FileList"):
+            self.node = node
+            self._control = control
             super().__init__()
 
         @property
         def contol(self) -> "FileList":
-            return self.file_list
+            return self._control
 
     class Open(Message):
-        def __init__(self, fs: AbstractFileSystem, path: str, file_list: "FileList"):
-            self.fs = fs
-            self.path = path
-            self.file_list = file_list
+        def __init__(self, node: Node, control: "FileList"):
+            self.node = node
+            self._control = control
             super().__init__()
 
         @property
         def contol(self) -> "FileList":
-            return self.file_list
+            return self._control
 
-    path = reactive(Path.cwd().as_posix())
+    # FIMXE: do all these need to be reactive?
 
+    # primary model:
+    node: reactive[Node] = reactive(Node.cwd())
+    cursor_node: reactive[Node] = reactive(Node.cwd())
+
+    # state:
+    active = reactive(False)
+
+    # toggles:
     sort_options = reactive(SortOptions("name"), init=False)
     show_hidden = reactive(False, init=False)
     dirs_first = reactive(False, init=False)
     order_case_sensitive = reactive(False, init=False)
-    # FIXME: cursor_path only makes sense with the fs instance; users just "need" to
-    #        know this fact; ideally need an anstraction for fs+path, or generate
-    #        events for changes in cursor_path, or just expose a get_cursor_path()
-    cursor_path = reactive(Path.cwd().as_posix())
-    active = reactive(False)
-    glob = reactive(None, init=False)
     search_mode = reactive(None)
-    # FIXME: same as for cursor_path above
-    selection: set[str] = set()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fs = filesystem("file")
-        self.parent_fs = None
-        self.parent_path = None
+        self.listing: list[Node] = []
+        self._selection: set[Node] = set()
 
     def compose(self) -> ComposeResult:
         self.table: DataTable = DataTable(cursor_type="row")
@@ -201,30 +188,31 @@ class FileList(Static):
         self.update_listing()
         self.watch_sort_options(None, self.sort_options)
 
-    def selected_paths(self) -> list[str]:
-        if len(self.selection) > 0:
-            return list([posixpath.join(self.path, name) for name in self.selection])
-        elif posixpath.basename(self.cursor_path) != "..":
-            return [self.cursor_path]
+    @property
+    def selection(self) -> list[Node]:
+        if len(self._selection) > 0:
+            return list(self._selection)
+        elif self.cursor_node != self.node.parent:
+            return [self.cursor_node]
         else:
-            return []  # FIXME: should be None
+            return []
 
     def reset_selection(self):
-        self.selection = set()
+        self._selection = set()
 
-    def add_selection(self, name):
-        if name == "..":
+    def add_selection(self, node: Node):
+        if node == self.node.parent:
             return
-        self.selection.add(name)
+        self._selection.add(node)
 
-    def remove_selection(self, name):
-        self.selection.remove(name)
+    def remove_selection(self, node: Node):
+        self._selection.remove(node)
 
-    def toggle_selection(self, name):
-        if name in self.selection:
-            self.remove_selection(name)
+    def toggle_selection(self, node: Node):
+        if node in self._selection:
+            self.remove_selection(node)
         else:
-            self.add_selection(name)
+            self.add_selection(node)
 
     def scroll_to_entry(self, name: str):
         try:
@@ -237,28 +225,27 @@ class FileList(Static):
     # FORMATTING:
     #
 
-    def _row_style(self, e: DirEntry) -> str:
-        # FIXME: use CSS instead
-        theme = self.app.available_themes[self.app.theme]
+    def _row_style(self, node: Node) -> str:
         style = ""
 
-        if e.is_dir:
-            style = "bold"
-        elif e.is_executable:
-            style = theme.error or "red"
-        elif e.is_hidden:
-            style = "dim"
-        elif e.is_link:
+        if node.is_link:
             style = "underline"
-        elif e.is_archive:
-            style = theme.accent or "yellow"
+        elif node.is_dir:
+            style = "bold"
+        elif node.is_executable:
+            style = self.app.theme_.error or "red"  # type: ignore
+        elif node.is_hidden:
+            style = "dim"
+        elif node.is_archive:
+            style = self.app.theme_.accent or "yellow"  # type: ignore
 
-        if e.name in self.selection:
-            style += f" {theme.accent or 'yellow'} italic"
+        if node in self._selection:
+            # adds a background color:
+            style += f" {self.app.theme_.accent or 'yellow'} italic"  # type: ignore
 
         return style
 
-    def _fmt_name(self, e: DirEntry, style: str) -> Text:
+    def _fmt_name(self, node: Node, style: str) -> Text:
         text = Text()
 
         width_target = self._width_name()
@@ -268,17 +255,17 @@ class FileList(Static):
             return text
 
         # adjust width: cut long names
-        if len(e.name) > width_target:
+        if len(node.name) > width_target:
             suffix = "..."
             cut_idx = width_target - len(suffix)
-            text.append(e.name[:cut_idx] + suffix, style=style)
+            text.append(node.name[:cut_idx] + suffix, style=style)
 
         # FIXME: remove if textual supports full-width data tables
         # adjust width: pad short names to span the column
         else:
-            pad_size = width_target - len(e.name)
-            text.append(e.name, style=style)
-            text.append(" " * pad_size)  # FIXME: the only reason to pass style as arg
+            pad_size = width_target - len(node.name)
+            text.append(node.name, style=style)
+            text.append(" " * pad_size)
 
         return text
 
@@ -294,23 +281,23 @@ class FileList(Static):
         else:
             return None
 
-    def _fmt_size(self, e: DirEntry, style: str) -> Text:
-        if e.name == "..":
+    def _fmt_size(self, node: Node, style: str) -> Text:
+        if node.name == "..":
             return Text("-- UP⇧ --", style=style, justify="center")
-        elif e.is_dir:
+        elif node.is_dir:
             return Text("-- DIR --", style=style, justify="center")
-        elif e.is_link:
+        elif node.is_link:
             return Text("-- LNK --", style=style, justify="center")
         else:
-            return Text(naturalsize(e.size), style=style, justify="right")
+            return Text(naturalsize(node.size), style=style, justify="right")
 
     @functools.cache
     def _width_size(self):
         return len(naturalsize(123)) + self.COLUMN_PADDING
 
-    def _fmt_mtime(self, e: DirEntry, style: str) -> Text:
+    def _fmt_mtime(self, node: Node, style: str) -> Text:
         return Text(
-            time.strftime(self.TIME_FORMAT, time.localtime(e.mtime)),
+            time.strftime(self.TIME_FORMAT, time.localtime(node.mtime)),
             style=style,
         )
 
@@ -332,113 +319,128 @@ class FileList(Static):
             "size": self.sort_key_by_size,
             "mtime": self.sort_key_by_mtime,
         }[self.sort_options.key]
-        entry: DirEntry = name_and_value.value
+        entry: Node = name_and_value.value
         return sort_key_fn(entry)
 
-    def sort_key_by_name(self, e: DirEntry) -> str:
+    def sort_key_by_name(self, node: Node) -> str:
         # stick ".." at the top of the list, regardless of the order (asc/desc)
-        if e.name == "..":
+        if node.name == "..":
             return "\u0000" if not self.sort_options.reverse else "\uFFFF"
 
         # dirs first, if asked for
         prefix = ""
-        if self.dirs_first and e.is_dir:
+        if self.dirs_first and node.is_dir:
             prefix = "\u0001" if not self.sort_options.reverse else "\uFFFE"
 
         # handle case sensetivity
-        name = e.name
+        name = node.name
         if not self.order_case_sensitive:
             name = name.lower() + name  # keeping original name for stable ordering
 
         return prefix + name
 
-    def sort_key_by_size(self, e: DirEntry) -> Tuple[int, Optional[str]]:
+    def sort_key_by_size(self, node: Node) -> Tuple[int, Optional[str]]:
         max_file_size = 2**64  # maximum file size in zfs, and probably on the planet
         # stick ".." at the top of the list, regardless of the order (asc/desc)
-        if e.name == "..":
+        if node.name == "..":
             size_key = -1 if not self.sort_options.reverse else max_file_size + 1
             return (size_key, None)
 
-        size_key = e.size
+        size_key = node.size
         # when ordering by size, dirs are always first
-        if e.is_dir or e.is_link:
+        if node.is_dir or node.is_link:
             size_key = 0 if not self.sort_options.reverse else max_file_size
 
-        return (size_key, self.sort_key_by_name(e))  # add name for stable ordering
+        return (size_key, self.sort_key_by_name(node))  # add name for stable ordering
 
-    def sort_key_by_mtime(self, e: DirEntry) -> Tuple[float, Optional[str]]:
+    def sort_key_by_mtime(self, node: Node) -> Tuple[float, Optional[str]]:
         y3k = 32_503_680_000  # this program has Y3K issues
         # stick ".." at the top of the list, regardless of the order (asc/desc)
-        if e.name == "..":
+        if node.name == "..":
             key = -1 if not self.sort_options.reverse else 2 * y3k
             return (key, None)
 
-        mtime_key = e.mtime
+        mtime_key = node.mtime
         if self.dirs_first:
-            if not self.sort_options.reverse and not e.is_dir:
-                mtime_key = e.mtime + y3k
-            elif self.sort_options.reverse and e.is_dir:
-                mtime_key = e.mtime + y3k
+            if not self.sort_options.reverse and not node.is_dir:
+                mtime_key = node.mtime + y3k
+            elif self.sort_options.reverse and node.is_dir:
+                mtime_key = node.mtime + y3k
 
-        return (mtime_key, self.sort_key_by_name(e))  # add name for stable ordering
+        return (mtime_key, self.sort_key_by_name(node))  # add name for stable ordering
 
     #
     # END OF ORDERING
     #
 
-    def _update_table(self, ls: DirList):
+    def _update_table(self):
         self.table.clear()
-        for child in ls.entries:
-            style = self._row_style(child)
+        for node in self.listing:
+
+            if not self.show_hidden and node.is_hidden:
+                continue
+
+            style = self._row_style(node)
             self.table.add_row(
-                # name column also holds original values:
-                TextAndValue(child, self._fmt_name(child, style)),
-                self._fmt_size(child, style),
-                self._fmt_mtime(child, style),
-                key=child.name,
+                # name column also holds original values: (FIXME...)
+                TextAndValue(node, self._fmt_name(node, style)),
+                self._fmt_size(node, style),
+                self._fmt_mtime(node, style),
+                key=node.name,
             )
+        # FIXME: why reset the sort to name? presrve the previous sort method!
         self.table.sort("name", key=self.sort_key, reverse=self.sort_options.reverse)
 
     def update_listing(self):
-        old_cursor_path = self.cursor_path
-        ls = list_dir(
-            self.fs,
-            self.path,
-            include_hidden=self.show_hidden,
-            glob_expression=self.glob,
-        )
+        prev_cursor_node = self.cursor_node
 
-        if self.path == "":
-            entry = DirEntry.from_info(
-                self.parent_fs, self.parent_fs.info(self.parent_path)
-            )
-            entry.name = ".."
-            ls.entries.insert(0, entry)
+        ls = self.node.list()
+        if self.node.parent:
+            up = dataclasses.replace(self.node.parent, name="..")
+            ls.insert(0, up)
+        self.listing = ls
 
-        self._update_table(ls)
+        self._update_table()
+
         # if stil in same dir as before, restore the cursor position
-        if self.path == posixpath.dirname(old_cursor_path):
-            self.scroll_to_entry(posixpath.basename(old_cursor_path))
-        # update list border with some information about the directory:
-        total_size_str = naturalsize(ls.total_size)
-        if is_local_fs(self.fs):
-            self.parent.border_title = self.path
-        elif self.parent_fs is not None:
-            self.parent.border_title = posixpath.join(self.parent_path, self.path)
+        if self.node == prev_cursor_node.parent:
+            self.scroll_to_entry(prev_cursor_node.name)
+
+        # top border: "current" path
+        if self.node.is_local:
+            self.parent.border_title = shorten(
+                self.node.path,
+                width_target=self.table.size.width - 4,
+                method="slice",
+                unexpand_home=self.node.is_local,
+            )
+        elif self.node.is_archive:
+            self.parent.border_title = self.node.path
         else:
-            self.parent.border_title = self.fs.unstrip_protocol(self.path)
-        subtitle = f"{total_size_str} in {ls.file_count} files | {ls.dir_count} dirs"
-        if self.glob is not None:
-            subtitle = f"[red]{self.glob}[/red] | {subtitle}"
+            self.parent.border_title = self.node.fs.unstrip_protocol(self.node.path)
+
+        # bottom border: add information about the directory:
+        total_size = naturalsize(sum(node.size for node in ls))
+        file_count = sum(1 for node in ls if node.is_file)
+        dir_count = sum(1 for node in ls if node.is_dir)
+        subtitle = f"{total_size} in {file_count} files | {dir_count} dirs"
         self.parent.border_subtitle = subtitle
 
-    def watch_path(self, old_path: str, new_path: str):
+    def watch_node(self, old_node: Node, new_node: Node):
+        # if trying to navigate to a file, navigate to its parent dir:
+        if not new_node.is_dir:
+            self.set_reactive(FileList.node, new_node.parent)  # type: ignore
+
         self.reset_selection()
-        self.glob = None
         self.update_listing()
+
         # if navigated "up", select source dir in the new list:
-        if new_path == posixpath.dirname(old_path):
-            self.scroll_to_entry(posixpath.basename(old_path))
+        if new_node == old_node.parent:
+            self.scroll_to_entry(old_node.name)
+
+        # if nvaigated to a file, select it:
+        if not new_node.is_dir:
+            self.scroll_to_entry(new_node.name)
 
     def watch_show_hidden(self, old: bool, new: bool):
         if not new:  # if some files will be not shown anymore, better be safe:
@@ -462,10 +464,6 @@ class FileList(Static):
         direction = "⬆" if new.reverse else "⬇"
         new_sort_col.label = f"{new_sort_col.label} {direction}"  # type: ignore
 
-    def watch_glob(self, old: Optional[str], new: Optional[str]):
-        self.reset_selection()
-        self.update_listing()
-
     # FIXME: refactor (simplify) ordering logic; see if DataTable provides better API
     def action_order(self, key: str, reverse: bool):
         # if the user chooses the same order again, reverse it:
@@ -474,47 +472,6 @@ class FileList(Static):
         if self.sort_options == new_sort_options:
             new_sort_options = SortOptions(key, not reverse)
         self.sort_options = new_sort_options
-
-    @work
-    async def action_find(self):
-        def on_find(value):
-            if value is None:
-                return
-
-            if value.strip() == "" or value.strip() == "*":
-                self.glob = None
-            else:
-                self.glob = value
-
-        self.app.push_screen(
-            InputDialog(
-                title="Find files, enter glob expression",
-                value=self.glob or "*",
-                btn_ok="Find",
-            ),
-            on_find,
-        )
-
-    def on_data_table_row_selected(self, event: DataTable.RowSelected):
-        entry_name: str = event.row_key.value  # type: ignore
-        if entry_name == "..":
-            self.on_navigate_up()
-        else:
-            selected_path = posixpath.join(self.path, entry_name)
-            if self.fs.isdir(selected_path):
-                self.path = selected_path
-
-    def on_navigate_up(self):
-        if self.path != "":
-            # regular upwards navigation
-            self.path = posixpath.dirname(self.path)
-        else:
-            # navgiate to the parent file system, if at root of a child one
-            self.fs = self.parent_fs
-            self.set_reactive(FileList.path, self.parent_path)
-            self.path = posixpath.dirname(self.parent_path)
-            self.parent_fs = None
-            self.parent_path = None
 
     def action_search(self):
         self.search_mode = True
@@ -546,53 +503,54 @@ class FileList(Static):
         max_score = max(scores)
         if max_score > 0:
             idx = scores.index(max_score)
-            self.scroll_to_entry(names[idx])
+            name = names[idx]
+            self.scroll_to_entry(name)
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected):
+        node_name: str = event.row_key.value  # type: ignore
+        nodes = [n for n in self.listing if n.name == node_name]
+        if len(nodes) == 1 and nodes[0]:
+            self.node = nodes[0]
 
     def action_open(self):
         # "open" is handled separately from "table.row_selected" to distinguish
         # between "enter" and mouse click (avoid navigation and running
-        # apps on mouse clickd)
-        if self.fs.isdir(posixpath.normpath(self.cursor_path)):
-            pass  # already handled by on_data_table_row_selected
-        elif self.fs.isfile(self.cursor_path):
-            self.post_message(
-                self.Open(fs=self.fs, path=self.cursor_path, file_list=self)
-            )
+        # apps on mouse click)
+        if self.cursor_node.is_file:
+            self.post_message(self.Open(self.cursor_node, self))
 
     def action_open_in_os_file_manager(self):
-        if not is_local_fs(self.fs):
+        if not self.node.is_local:
             return
 
+        # FIXME: the rest of code does not belong to the action implementation?
         open_cmd = native_open()
         if open_cmd is not None:
             with self.app.suspend():
-                subprocess.run(open_cmd + [self.path])
+                subprocess.run(open_cmd + [self.node.path])
             self.app.refresh()
 
     def action_navigate_to_config(self):
-        self.fs = filesystem("file")
-        self.path = config_root().as_posix()
+        self.node = Node.from_url(config_root().as_uri())
 
     @work
     async def action_calc_dir_size(self):
-        path = self.cursor_path  # hold on to the requsted path
+        node = self.cursor_node  # hold on to the requsted node
         self.action_cursor_down()  # and move the cursor
-        if not self.fs.isdir(path):
+
+        if not node.is_dir:
             return
 
-        cursor_name = posixpath.basename(self.cursor_path)
+        style = self._row_style(node)
 
-        entry = DirEntry.from_info(self.fs, self.fs.info(path))
-        style = self._row_style(entry)
-
-        # show a placeholder and move the cursor at once:
+        # show a placeholder first:
         placeholder = Text("...", style=style, justify="right")
-        self.table.update_cell(cursor_name, "size", placeholder)
+        self.table.update_cell(node.name, "size", placeholder)
 
         # then, calculate and show the size (can be slow):
-        size = self.fs.du(self.cursor_path, total=True, withdirs=True)
+        size = self.node.fs.du(node.path, total=True, withdirs=True)
         size_text = Text(naturalsize(size), style=style, justify="right")
-        self.table.update_cell(cursor_name, "size", size_text)
+        self.table.update_cell(node.name, "size", size_text)
 
     def action_cursor_down(self):
         new_coord = (self.table.cursor_coordinate[0] + 1, 0)
@@ -604,10 +562,8 @@ class FileList(Static):
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted):
         name: str = event.row_key.value  # type: ignore
-        self.cursor_path = posixpath.join(self.path, name)
-        self.post_message(
-            self.Selected(fs=self.fs, path=self.cursor_path, file_list=self)
-        )
+        self.cursor_node = next(n for n in self.listing if n.name == name)
+        self.post_message(self.Selected(self.cursor_node, self))
 
     def on_descendant_focus(self, event):
         self.active = True
@@ -640,27 +596,28 @@ class FileList(Static):
         elif event.key in ("ctrl+b", "ctrl+u"):
             self.table.action_page_up()
         elif event.key == "backspace":
-            self.on_navigate_up()
+            if self.node.parent:
+                self.node = self.node.parent
         elif event.key == "R":
             self.update_listing()
         elif event.key == "enter":
             self.action_open()
         elif event.key in ("space", "J", "shift+down"):
-            self.toggle_selection(posixpath.basename(self.cursor_path))
+            self.toggle_selection(self.cursor_node)
             self.update_listing()
             self.action_cursor_down()
         elif event.key in ("K", "shift+up"):
-            self.toggle_selection(posixpath.basename(self.cursor_path))
+            self.toggle_selection(self.cursor_node)
             self.update_listing()
             self.action_cursor_up()
         elif event.key == "minus":
             self.reset_selection()
             self.update_listing()
         elif event.key == "plus":
-            for key in self.table.rows:
-                self.add_selection(key.value)
+            for node in self.listing:
+                self.add_selection(node)
             self.update_listing()
         elif event.key == "asterisk":
-            for key in self.table.rows:
-                self.toggle_selection(key.value)
+            for node in self.listing:
+                self.toggle_selection(node)
             self.update_listing()

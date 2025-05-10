@@ -11,9 +11,9 @@ from .widgets.dialogs import StaticDialog
 
 
 def with_error_handler(app):
-
-    def on_dismiss(_):
-        app.refresh()
+    """
+    Decorator that catches all exceptions and displays an error dialog.
+    """
 
     def wrapper(fn):
 
@@ -22,7 +22,10 @@ def with_error_handler(app):
             try:
                 return fn(*args, **kwargs)
             except Exception as e:
-                app.push_screen(StaticDialog.error("Error", str(e)), on_dismiss)
+                app.push_screen(
+                    StaticDialog.error("Error", str(e)),
+                    lambda _: app.refresh(),
+                )
                 return None
 
         return impl
@@ -32,6 +35,10 @@ def with_error_handler(app):
 
 @asynccontextmanager
 async def error_handler_async(app):
+    """
+    Context manager that catches all exceptions and displays an error dialog.
+    """
+
     try:
         yield
     except Exception as e:

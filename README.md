@@ -65,7 +65,7 @@ work-in-progress as indicated below.
  - [x] Preview panel
  - [x] Drop to shell
  - [x] User-level configuration file
- - [x] Extensive "Remote File systems" support. A non-extensive list
+ - [x] Extensive "Remote File systems" support. A non-exhaustive list
        includes: AWS S3, GCP GCS, Azure ADLS, OCI, OSS, DVC, LakeFS, HDFS,
        Dropbox, Google Drive, FTP/FTPS, SFTP, SMB, WebDAV, and many more.
        Custom implementations are possible through other

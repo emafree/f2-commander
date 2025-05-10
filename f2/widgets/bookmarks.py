@@ -16,7 +16,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Label, OptionList
 from textual.widgets.option_list import Option, Separator
 
-from ..config import config
+from f2.config import config
 
 
 class GoToBookmarkDialog(ModalScreen):
