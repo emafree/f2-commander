@@ -10,6 +10,10 @@ From PyPI:
 
     pipx install f2-commander
 
+or:
+
+    uvx --from f2-commander f2
+
 From source:
 
     poetry build
@@ -91,33 +95,29 @@ See also a [list of known bugs](docs/testing.md).
 
 ## Development environment
 
-This project uses Poetry for dependency management and as a build tool. The
-configuration is conventional, use as usual:
+This project uses [uv](https://docs.astral.sh/uv/). The configuration is
+conventional, use as usual:
 
-    poetry install --with dev
+    uv run f2
 
-It also uses black, flake8, isort, mypy and pytest. An IDE or an LSP should
-pick up their configuration, or they can be executed with poetry. For example:
+Static code analysis (black, flake8, isort, mypy) and pytest can be ran with
+`uv` and `uvx`. For example:
 
-    poetry run pytest
+    uvx run black .
+    uv run pytest
 
-To run all code quality controls and linters:
+To run all code quality controls:
 
     ./check
 
-To run the application from source code:
-
-    poetry run f2
-
 To run the application with dev tools:
 
-    poetry run textual console [-v -x SYSTEM -x EVENT -x DEBUG -x INFO]  # this first!
-    poetry run textual run --dev f2.app:F2Commander
+    uv run textual console [-v -x SYSTEM -x EVENT -x DEBUG -x INFO]  # this first!
+    uv run textual run --dev f2.app:F2Commander
 
 To run tests in all target Python versions (typically before a release):
 
-    pipx install nox
-    nox [-r]  # -r == --reuse-existing-virtualenvs
+    uvx nox [-r]  # -r == --reuse-existing-virtualenvs
 
 ## About (continued)
 

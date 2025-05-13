@@ -1,20 +1,13 @@
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
+[project]
 name = "f2-commander"
 version = "0.5.1"
 description = "F2 Commander is an orthodox file manager for the modern world."
 license = "MPL-2.0"
-authors = ["Timur Rubeko <timcandid@gmail.com>"]
+license-files = ["LICENSE"]
+authors = [ { name="Timur Rubeko", email="timcandid@gmail.com" } ]
 readme = "README.md"
-packages = [{include = "f2"}]
-homepage = "https://candidtim.github.io/f2-commander"
-repository = "https://github.com/candidtim/f2-commander"
 keywords = ["file", "manager", "commander"]
 classifiers = [
-    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",
@@ -28,34 +21,37 @@ classifiers = [
     "Environment :: Console",
     "Topic :: Desktop Environment :: File Managers",
 ]
+requires-python = ">=3.9"
+dependencies = [
+    "textual>=3.2.0",
+    "humanize>=4.12.3",
+    "send2trash>=1.8.3",
+    "platformdirs>=4.3.8",
+    "python-dotenv>=1.1.0",
+    "fsspec>=2025.3.2",
+    "libarchive-c>=5.2",
+]
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/candidtim/f2-commander/issues"
+[project.urls]
+Homepage = "https://candidtim.github.io/f2-commander"
+Repository = "https://github.com/candidtim/f2-commander"
+Issues = "https://github.com/candidtim/f2-commander/issues"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-textual = "1.0.0"
-humanize = "4.11.0"
-send2trash = "1.8.3"
-platformdirs = "4.3.6"
-python-dotenv = "1.0.1"
-fsspec = "2024.10.0"
-libarchive-c = "5.1"
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-isort = "^5.13"
-flake8 = "^7.1"
-mypy = "^1.13"
-pytest = "^8.3"
-pytest-asyncio = "^0.25.0"
-textual-dev = "^1.7"
-black = "24.10.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 f2 = "f2.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0,<0.27",
+    "textual-dev>=1.7.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.setuptools.package-data]
+"*" = ["**/tcss/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

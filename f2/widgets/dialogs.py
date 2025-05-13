@@ -67,7 +67,7 @@ class StaticDialog(ModalScreen[bool]):
 
     def on_mount(self) -> None:
         if self.btn_cancel is not None:
-            self.app.query_one("#cancel").focus()
+            self.query_one("#cancel").focus()
 
     @on(Button.Pressed, "#ok")
     def on_ok_pressed(self, event: Button.Pressed) -> None:
@@ -126,7 +126,7 @@ class InputDialog(ModalScreen[Optional[str]]):
                 yield Button(self.btn_cancel, variant="default", id="cancel")
 
     def on_mount(self) -> None:
-        self.app.query_one("#value").focus()
+        self.query_one("#value").focus()
 
     @on(Input.Submitted, "#value")
     def on_input_submitted(self, event: Input.Submitted) -> None:

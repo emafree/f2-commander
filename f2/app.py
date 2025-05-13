@@ -20,6 +20,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.command import DiscoveryHit, Hit, Provider
 from textual.containers import Horizontal
+from textual.content import Content
 from textual.css.query import NoMatches
 from textual.reactive import reactive
 from textual.theme import Theme
@@ -48,11 +49,11 @@ class F2AppCommands(Provider):
         flist_commands = [(flist, cmd) for cmd in flist.BINDINGS_AND_COMMANDS]
         return app_commands + flist_commands
 
-    def _fmt_name(self, cmd, text: Optional[Text] = None):
+    def _fmt_name(self, cmd, text: Optional[Content] = None):
         t = text or Text(cmd.name)
         if cmd.binding_key is not None:
             t.append(" ")
-            t.append(f"[{cmd.binding_key}]", style="dim")
+            t.append(f"[{cmd.binding_key}]")
         return t
 
     async def search(self, query: str):
@@ -501,7 +502,7 @@ class F2Commander(App):
 
     async def _copy_one(self, src_fs, src: str, dst_fs, dst: str):
         dst_final_path = copy_final_path(src, dst_fs, dst)
-        conflict_msg, title, btn_ok = None, None, None
+        conflict_msg, title, btn_ok = None, "", ""
         if src_fs.isfile(src) and dst_fs.isfile(dst_final_path):
             conflict_msg = f"{dst_final_path} already exists. Overwrite?"
             title = "Overwrite?"

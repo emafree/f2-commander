@@ -325,12 +325,12 @@ class FileList(Static):
     def sort_key_by_name(self, node: Node) -> str:
         # stick ".." at the top of the list, regardless of the order (asc/desc)
         if node.name == "..":
-            return "\u0000" if not self.sort_options.reverse else "\uFFFF"
+            return "\u0000" if not self.sort_options.reverse else "\uffff"
 
         # dirs first, if asked for
         prefix = ""
         if self.dirs_first and node.is_dir:
-            prefix = "\u0001" if not self.sort_options.reverse else "\uFFFE"
+            prefix = "\u0001" if not self.sort_options.reverse else "\ufffe"
 
         # handle case sensetivity
         name = node.name

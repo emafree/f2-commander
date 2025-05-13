@@ -1,10 +1,15 @@
 # Python
 __pycache__/
 
+# Build system generated files
+dist/
+*.egg-info
+
 # Development Environment
+.venv/
+.nox/
 .pytest_cache/
 .mypy_cache/
-dist/
 
 # MacOS
 .DS_Store

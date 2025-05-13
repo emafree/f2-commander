@@ -14,7 +14,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, OptionList
-from textual.widgets.option_list import Option, Separator
+from textual.widgets.option_list import Option
 
 from f2.config import config
 
@@ -32,7 +32,7 @@ class GoToBookmarkDialog(ModalScreen):
             self._url_to_option(idx, url) for idx, url in enumerate(config.bookmarks)
         ]
         if config.file_systems:
-            options.append(Separator())
+            options.append(None)
             options.append(Option("Remote file systems:", disabled=True))
             options.extend(
                 [self._remote_fs_to_option(fs_conf) for fs_conf in config.file_systems]

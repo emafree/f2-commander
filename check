@@ -1,12 +1,10 @@
 #!/bin/bash
 
-if [[ -z "$(poetry env list)" ]]; then
-    poetry install --with dev
-fi
-
 set -x
-poetry run black --check .
-poetry run isort --check .
-poetry run flake8 f2 tests
-poetry run mypy f2 tests
-poetry run pytest
+
+uvx black@25.1.0 --check .
+uvx isort@6.0.1 --check .
+uvx flake8@7.2.0 f2 tests
+uvx mypy@1.15.0 f2 tests
+
+uv run pytest
