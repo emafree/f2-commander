@@ -126,7 +126,7 @@ class ConnectToRemoteDialog(ModalScreen):
                 classes="param",
             )
 
-        elif field_type == bool:
+        elif field_type is bool:
             if param.default is inspect.Parameter.empty:
                 default = False
             else:

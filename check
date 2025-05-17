@@ -2,9 +2,6 @@
 
 set -x
 
-uvx black@25.1.0 --check .
-uvx isort@6.0.1 --check .
-uvx flake8@7.2.0 f2 tests
+uvx ruff@0.11.9 check
 uvx mypy@1.15.0 f2 tests
-
 uv run pytest

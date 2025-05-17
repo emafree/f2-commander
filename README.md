@@ -16,7 +16,7 @@ or:
 
 From source:
 
-    poetry build
+    uv build
     pipx install [--force] dist/f2_commander-0.5.1.tar.gz
 
 This software is designed to work in Linux and macOS. It should also work in
@@ -100,10 +100,14 @@ conventional, use as usual:
 
     uv run f2
 
-Static code analysis (black, flake8, isort, mypy) and pytest can be ran with
-`uv` and `uvx`. For example:
+Static code analysis and type checks (ruff, mypy) can be ran with `uvx`. For
+example:
 
-    uvx run black .
+    uvx run ruff check
+    uvx run mypy
+
+Tests use pytest, installed with the dev dependencies:
+
     uv run pytest
 
 To run all code quality controls:

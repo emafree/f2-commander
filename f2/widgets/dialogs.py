@@ -7,6 +7,7 @@
 from enum import Enum
 from typing import Optional
 
+from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -102,7 +103,7 @@ class InputDialog(ModalScreen[Optional[str]]):
 
     def __init__(
         self,
-        title: str,
+        title: str | Text,
         value: str = "",
         btn_ok: str = "OK",
         btn_cancel: str = "Cancel",
