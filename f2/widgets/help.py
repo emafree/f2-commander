@@ -18,7 +18,7 @@ from f2.config import user_config_path
 
 
 HELP = f"""
-# F2 Commander {version('f2-commander')}
+# F2 Commander {version("f2-commander")}
 
 > Presse any key to close this panel
 

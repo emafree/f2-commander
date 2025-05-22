@@ -20,7 +20,6 @@ from f2.fs.util import breadth_first_walk, is_text_file, shorten
 
 
 class Preview(Static):
-
     node = reactive(Node.cwd(), recompose=True)
 
     def __init__(self, *args, **kwargs):

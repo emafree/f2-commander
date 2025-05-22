@@ -139,7 +139,6 @@ def is_archive(path: str) -> bool:
 
 
 def open_archive(path: str) -> Optional[AbstractFileSystem]:
-
     def _try_open(impl):
         try:
             archive_fs = impl(path, mode="r")

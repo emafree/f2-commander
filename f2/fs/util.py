@@ -231,7 +231,6 @@ def copy(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: 
 
 
 def move(src_fs: AbstractFileSystem, src: str, dst_fs: AbstractFileSystem, dst: str):
-
     # Following code exists because fsspec may use strip_protocol on the path
     # removing the trailing slash and thus changing the semantics of `move`;
     # all would work as expected, except that non-existing target dir names

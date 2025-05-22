@@ -16,7 +16,6 @@ def with_error_handler(app):
     """
 
     def wrapper(fn):
-
         @wraps(fn)
         def impl(*args, **kwargs):
             try:

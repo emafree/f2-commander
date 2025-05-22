@@ -347,7 +347,6 @@ class F2Commander(App):
             self._download(node, cont_fn=_open_temp)
 
     def _download(self, node, cont_fn):
-
         @with_error_handler(self)
         def on_download(result: bool):
             if result:
@@ -378,7 +377,6 @@ class F2Commander(App):
             )
 
     def _upload(self, fs, local_path, remote_path, cont_fn):
-
         @with_error_handler(self)
         def on_upload(result: bool):
             if result:

@@ -376,7 +376,6 @@ class FileList(Static):
     def _update_table(self):
         self.table.clear()
         for node in self.listing:
-
             if not self.show_hidden and node.is_hidden:
                 continue
 
