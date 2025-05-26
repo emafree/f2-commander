@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2025 Timur Rubeko
 
-"""Test basic display (file listing) features"""
+"""Test basic navigation features"""
 
 
 async def test_list_navigation(app, sample_fs):
@@ -14,6 +14,7 @@ async def test_list_navigation(app, sample_fs):
     async with app.run_test(size=(200, 15)) as pilot:
         app.order_case_sensitive = False
         app.dirs_first = False
+        app.show_hidden = False
         app._on_go_to(sample_fs.as_posix())
 
         # default:
@@ -157,3 +158,27 @@ async def test_incremental_search(app, sample_fs):
         # doing nothing:
         await pilot.press("/", "escape")
         assert app.active_filelist.cursor_node.name == "notes.txt"
+
+
+# FIXME: no easy to way to test highlight on hover?
+
+
+async def test_mouse_dir_navigation(app, sample_fs):
+    async with app.run_test(size=(200, 80)) as pilot:
+        app.order_case_sensitive = False
+        app.dirs_first = False
+        app.show_hidden = False
+        app._on_go_to(sample_fs.as_posix())
+
+        # 5th row is "Documents":
+        assert app.active_filelist.parent.border_title.endswith(sample_fs.name)
+        await pilot.click(widget=app.active_filelist.table, offset=(1, 5))
+        assert app.active_filelist.parent.border_title.endswith("Documents")
+
+        # first row is "..":
+        await pilot.click(widget=app.active_filelist.table, offset=(1, 1))
+        assert app.active_filelist.parent.border_title.endswith(sample_fs.name)
+
+        # click on file, does nothong:
+        await pilot.click(widget=app.active_filelist.table, offset=(1, 2))
+        assert app.active_filelist.parent.border_title.endswith(sample_fs.name)

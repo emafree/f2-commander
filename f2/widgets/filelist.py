@@ -226,24 +226,25 @@ class FileList(Static):
     #
 
     def _row_style(self, node: Node) -> str:
-        style = ""
+        style = set()
 
         if node.is_link:
-            style = "underline"
+            style.add("underline")
         elif node.is_dir:
-            style = "bold"
+            style.add("bold")
         elif node.is_executable:
-            style = self.app.theme_.error or "red"  # type: ignore
+            style.add(self.app.theme_.error or "red")  # type: ignore
         elif node.is_hidden:
-            style = "dim"
+            style.add("dim")
         elif node.is_archive:
-            style = self.app.theme_.accent or "yellow"  # type: ignore
+            style.add(self.app.theme_.accent or "yellow")  # type: ignore
 
         if node in self._selection:
             # adds a background color:
-            style += f" {self.app.theme_.accent or 'yellow'} italic"  # type: ignore
+            style.add(self.app.theme_.accent or "yellow")  # type: ignore
+            style.add("italic")
 
-        return style
+        return " ".join(style)
 
     def _fmt_name(self, node: Node, style: str) -> Text:
         text = Text()
@@ -419,9 +420,11 @@ class FileList(Static):
             self.parent.border_title = self.node.fs.unstrip_protocol(self.node.path)
 
         # bottom border: add information about the directory:
-        total_size = naturalsize(sum(node.size for node in ls))
-        file_count = sum(1 for node in ls if node.is_file)
-        dir_count = sum(1 for node in ls if node.is_dir)
+        total_size = naturalsize(sum(node.size for node in ls if node.name != ".."))
+        file_count = sum(1 for node in ls if node.is_file and not node.is_link)
+        dir_count = sum(
+            1 for node in ls if node.is_dir and not node.is_link and node.name != ".."
+        )
         subtitle = f"{total_size} in {file_count} files | {dir_count} dirs"
         self.parent.border_subtitle = subtitle
 

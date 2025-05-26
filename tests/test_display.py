@@ -58,12 +58,8 @@ async def test_summary(app, sample_fs):
     async with app.run_test(size=(200, 80)):
         app._on_go_to(sample_fs.as_posix())
         assert app.active_filelist.parent.border_title == sample_fs.as_posix()
-        # this test is unstable in the .tenths of kb precision;
-        # expecting: "54.2 kB in 9 files | 9 dirs"
-        assert app.active_filelist.parent.border_subtitle.startswith("54.")
-        assert app.active_filelist.parent.border_subtitle.endswith(
-            " kB in 9 files | 9 dirs"
-        )
+        subtitle = app.active_filelist.parent.border_subtitle
+        assert subtitle == "44.2 kB in 9 files | 7 dirs"
 
 
 async def test_styles(app, sample_fs):

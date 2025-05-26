@@ -17,7 +17,7 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [x] Drop to shell (command line) temporarily
          - [ ] A simple one-time command input (e.g., an input box on `X`)
    - [ ] "Modern" and "Retro" color themes, ability to customize colors.
-   - [ ] Mouse click on an empty space below the file list to switch to that panel.
+   - [x] Mouse click on an empty space below the file list to switch to that panel.
    - [ ] Welcome screen on the first launch (select theme and keybindgins).
    - [ ] Receive dragged and dropped files
    - [ ] Multiple screens (e.g., open multiple editors, viewers; switch b/w those).
