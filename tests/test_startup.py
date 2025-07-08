@@ -14,7 +14,9 @@ from f2.app import F2Commander
 async def test_startup():
     app = F2Commander()
 
-    async with app.run_test():
+    # NOTE: not using F2Pilot explicitly, minimal dependencies in this test
+
+    async with app.run_test(size=(200, 80)):
         filelist = app.active_filelist
         assert filelist.node.path == os.getcwd()
 

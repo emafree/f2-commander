@@ -4,16 +4,28 @@
 #
 # Copyright (c) 2024 Timur Rubeko
 
+import re
 from enum import Enum
 from typing import Optional
 
 from rich.text import Text
+from rich.markup import escape as rich_escape
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Static
+
+RE_RICH_MARKUP = re.compile(r"(\\*)(\[.[^[]*?])")
+
+
+def escape(s: str) -> str:
+    """
+    Like rich.markup.esacpe, but escapes all [ characters regardless of what
+    comes next (Rich only escape if next is a lowercase letter).
+    """
+    return rich_escape(s, _escape=RE_RICH_MARKUP.sub)
 
 
 class Style(Enum):
@@ -59,7 +71,8 @@ class StaticDialog(ModalScreen[bool]):
         with Vertical(id="dialog", classes=f"{self.style.value} {user_classes}"):
             yield Label(self.title, id="title")  # type: ignore
             if self.message is not None:
-                yield Static(self.message, id="message")  # Static wraps long text
+                clean_message = escape(self.message)  # sanitize unctrolled inputs
+                yield Static(clean_message, id="message")  # Static wraps long text
             with Horizontal(id="buttons"):
                 if self.btn_ok is not None:
                     yield Button(self.btn_ok, variant="primary", id="ok")

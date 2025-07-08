@@ -244,7 +244,7 @@ class FileList(Static):
             style.add(self.app.theme_.accent or "yellow")  # type: ignore
             style.add("italic")
 
-        return " ".join(style)
+        return " ".join(sorted(style))
 
     def _fmt_name(self, node: Node, style: str) -> Text:
         text = Text()
@@ -348,7 +348,7 @@ class FileList(Static):
             return (size_key, None)
 
         size_key = node.size
-        # when ordering by size, dirs are always first
+        # when ordering by size, dirs are always first to avoid confusion
         if node.is_dir or node.is_link:
             size_key = 0 if not self.sort_options.reverse else max_file_size
 

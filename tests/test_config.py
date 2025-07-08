@@ -6,5 +6,6 @@
 
 """Test config interface"""
 
+
 def test_config():
     pass

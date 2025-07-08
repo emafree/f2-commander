@@ -8,102 +8,89 @@
 
 from datetime import datetime, timedelta
 
-THEME = "textual-dark"
-RED = "#ba3c5b"
-YELLOW = "#ffa62b"
+from .f2pilot import RED, SIZE_NARROW, YELLOW, run_test
 
 
-def col(data_table, col_key):
-    return [str(x).strip() for x in data_table.get_column(col_key)]
+async def test_simple_names():
+    async with run_test() as (pilot, f2pilot):
+        assert "Downloads" in f2pilot.listing
+        assert "todo.md" in f2pilot.listing
+        assert "settings.json" in f2pilot.listing
 
 
-def cell(data_table, row_key, col_key):
-    return str(data_table.get_cell(row_key, col_key))
-
-
-async def test_simple_names(app, sample_fs):
-    async with app.run_test(size=(200, 80)):
-        app._on_go_to(sample_fs.as_posix())
-        assert "Downloads" in col(app.active_filelist.table, "name")
-        assert "todo.md" in col(app.active_filelist.table, "name")
-        assert "settings.json" in col(app.active_filelist.table, "name")
-
-
-async def test_hidden(app, sample_fs):
-    async with app.run_test(size=(200, 80)):
-        app._on_go_to(sample_fs.as_posix())
+async def test_hidden(app):
+    async with run_test(app=app) as (pilot, f2pilot):
         app.show_hidden = False
-        assert ".bashrc" not in col(app.active_filelist.table, "name")
+        assert ".bashrc" not in f2pilot.listing
         app.show_hidden = True
-        assert ".bashrc" in col(app.active_filelist.table, "name")
+        assert ".bashrc" in f2pilot.listing
 
 
-async def test_size(app, sample_fs):
-    async with app.run_test(size=(200, 80)):
-        app._on_go_to(sample_fs.as_posix())
-        assert cell(app.active_filelist.table, "todo.md", "size") == "5.0 kB"
-        assert cell(app.active_filelist.table, "Downloads", "size") == "-- DIR --"
+async def test_size():
+    async with run_test() as (pilot, f2pilot):
+        assert f2pilot.cell("todo.md", "size").plain == "20 Bytes"
+        assert f2pilot.cell("contacts.csv", "size").plain == "3.0 kB"
+        assert f2pilot.cell("Downloads", "size").plain == "-- DIR --"
 
 
-async def test_mtime(app, sample_fs):
+async def test_mtime():
     now = datetime.now().strftime("%b %d %H:%M")
     minute_before = (datetime.now() - timedelta(minutes=1)).strftime("%b %d %H:%M")
-    async with app.run_test(size=(200, 80)):
-        app._on_go_to(sample_fs.as_posix())
-        actual_mtime = cell(app.active_filelist.table, "todo.md", "mtime")
+    async with run_test() as (pilot, f2pilot):
+        actual_mtime = f2pilot.cell("todo.md", "mtime").plain
         assert actual_mtime == now or actual_mtime == minute_before
 
 
 async def test_summary(app, sample_fs):
-    async with app.run_test(size=(200, 80)):
-        app._on_go_to(sample_fs.as_posix())
-        assert app.active_filelist.parent.border_title == sample_fs.as_posix()
+    async with run_test(app=app, cwd=sample_fs) as (pilot, f2pilot):
+        # this explicitly tests border titles, not using f2pilot features
+        title = app.active_filelist.parent.border_title
+        assert title == sample_fs.as_posix()
         subtitle = app.active_filelist.parent.border_subtitle
         assert subtitle == "44.2 kB in 9 files | 7 dirs"
 
 
-async def test_styles(app, sample_fs):
-    async with app.run_test(size=(200, 80)):
-        app.theme = THEME
+async def test_styles(app):
+    async with run_test(app=app) as (pilot, f2pilot):
         app.show_hidden = True
-        app._on_go_to(sample_fs.as_posix())
-        table = app.active_filelist.table
-        assert table.get_cell("todo.md", "name").markup.strip() == "todo.md"
+        # regular file:
+        assert f2pilot.cell("todo.md", "name").markup.strip() == "todo.md"
+        # directory:
         assert (
-            table.get_cell("Downloads", "name").markup.strip()
-            == "[bold]Downloads[/bold]"
+            f2pilot.cell("Downloads", "name").markup.strip() == "[bold]Downloads[/bold]"
         )
+        # link:
         assert (
-            table.get_cell("Photos", "name").markup.strip()
+            f2pilot.cell("Photos", "name").markup.strip()
             == "[underline]Photos[/underline]"
         )
+        # executable file:
         assert (
-            table.get_cell("update.sh", "name").markup.strip()
+            f2pilot.cell("update.sh", "name").markup.strip()
             == f"[{RED}]update.sh[/{RED}]"
         )
-        assert table.get_cell(".bashrc", "name").markup.strip() == "[dim].bashrc[/dim]"
+        # hidden file:
+        assert f2pilot.cell(".bashrc", "name").markup.strip() == "[dim].bashrc[/dim]"
+        # archive / compressed file:
         assert (
-            table.get_cell("backup.zip", "name").markup.strip()
+            f2pilot.cell("backup.zip", "name").markup.strip()
             == f"[{YELLOW}]backup.zip[/{YELLOW}]"
         )
 
 
-async def test_padding(app, sample_fs):
-    async with app.run_test(size=(200, 80)) as pilot:
-        app._on_go_to(sample_fs.as_posix())
-        assert len(app.active_filelist.table.get_cell("todo.md", "name").markup) > 50
+async def test_padding():
+    async with run_test() as (pilot, f2pilot):
+        assert len(f2pilot.cell("todo.md", "name").markup) > 50
         await pilot.resize_terminal(80, 40)
-        assert len(app.active_filelist.table.get_cell("todo.md", "name").markup) < 10
+        assert len(f2pilot.cell("todo.md", "name").markup) < 10
         await pilot.resize_terminal(200, 80)
-        assert len(app.active_filelist.table.get_cell("todo.md", "name").markup) > 50
+        assert len(f2pilot.cell("todo.md", "name").markup) > 50
 
 
-async def test_display_truncated(app, sample_fs):
-    async with app.run_test(size=(80, 40)):
-        app._on_go_to(sample_fs.as_posix())
-        assert "todo.md" in col(app.active_filelist.table, "name")
-        assert "settin..." in col(app.active_filelist.table, "name")
+async def test_display_truncated(sample_fs):
+    async with run_test(cwd=sample_fs, size=SIZE_NARROW) as (pilot, f2pilot):
+        assert "todo.md" in f2pilot.listing
+        assert "settin..." in f2pilot.listing
         # long border title should be truncated:
-        title = app.active_filelist.parent.border_title
-        assert "..." in title
-        assert title.endswith(sample_fs.name)
+        assert "..." in f2pilot.panel_title
+        assert f2pilot.panel_title.endswith(sample_fs.name)
