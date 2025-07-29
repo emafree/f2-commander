@@ -8,7 +8,7 @@
 
 import os
 
-from .f2pilot import run_test
+from ..f2pilot import run_test
 from f2.widgets.dialogs import StaticDialog, InputDialog
 
 

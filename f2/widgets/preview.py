@@ -24,10 +24,12 @@ class Preview(Static):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fs = filesystem("file")
+        self._content = None
+        self._fs = filesystem("file")
 
     def compose(self) -> ComposeResult:
-        yield Static(self._format(self.node))
+        self._content = self._format(self.node)
+        yield Static(self._content)
 
     def on_mount(self):
         self.node = self.app.active_filelist.cursor_node
@@ -64,7 +66,7 @@ class Preview(Static):
     def _height(self):
         """Viewport is not higher than this number of lines"""
         # FIXME: use Textual API instead?
-        return shutil.get_terminal_size(fallback=(80, 200))[1]
+        return shutil.get_terminal_size(fallback=(200, 80))[1]
 
     def _head(self, node: Node) -> str:
         lines = []
@@ -106,7 +108,7 @@ class Preview(Static):
         lines = [node.path]
         for p in collected_paths:
             name = posixpath.relpath(p, node.path)
-            if self.fs.isdir(p):
+            if self._fs.isdir(p):
                 name += "/"
             lines.append(f"┣ {name}")
         return "\n".join(lines)

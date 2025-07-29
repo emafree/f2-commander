@@ -166,7 +166,9 @@ def breadth_first_walk(
     while dirs_to_walk:
         next_dirs_to_walk = []
         for d in dirs_to_walk:
-            for info in fs.ls(d, detail=True):
+            children = fs.ls(d, detail=True)
+            ordered_by_name = sorted(children, key=lambda e: e["name"])
+            for info in ordered_by_name:
                 p = info["name"]
                 if is_hidden(info) and not include_hidden:
                     continue

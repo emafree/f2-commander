@@ -103,8 +103,8 @@ conventional, use as usual:
 Static code analysis and type checks (ruff, mypy) can be ran with `uvx`. For
 example:
 
-    uvx run ruff check
-    uvx run mypy
+    uvx ruff check
+    uvx mypy
 
 Tests use pytest, installed with the dev dependencies:
 

@@ -6,7 +6,7 @@
 
 """Test basic navigation features"""
 
-from .f2pilot import SIZE_SHORT, run_test
+from ..f2pilot import SIZE_SHORT, run_test
 
 
 async def test_list_navigation():

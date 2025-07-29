@@ -6,10 +6,7 @@
 
 """Test view and edit actions"""
 
-import os
-
-from .f2pilot import run_test
-from f2.widgets.bookmarks import GoToBookmarkDialog
+from ..f2pilot import run_test
 
 
 async def test_view(app, sample_fs):
@@ -18,4 +15,3 @@ async def test_view(app, sample_fs):
         # await pilot.press("v")
         # FIXME: suspend() cannot be used in tests;
         #        inject another (mock?) impl for action_view?
-

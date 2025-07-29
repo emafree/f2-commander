@@ -6,7 +6,7 @@
 
 """Test ordering in a file listing"""
 
-from .f2pilot import run_test
+from ..f2pilot import run_test
 
 
 async def test_order_by_name():

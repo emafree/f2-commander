@@ -4,12 +4,14 @@
 #
 # Copyright (c) 2025 Timur Rubeko
 
-"""Test config interface"""
+"""Test the remote connection dialog"""
+
+from ..f2pilot import run_test
 
 
-def test_config():
-    pass
+# TODO: remote connection tests
 
 
-def test_invalid_config_starts_with_defaults():
-    pass
+async def test_list_archive():
+    async with run_test() as (pilot, f2pilot):
+        pass

@@ -39,7 +39,7 @@ def _touch(path: Path, size: Optional[int] = None, content: Optional[bytes] = No
         if content is not None:
             f.write(content)
         else:
-            f.write(b"." * size)
+            f.write(b"." * size)  # type: ignore
 
 
 def create_sample_fs():

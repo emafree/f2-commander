@@ -11,12 +11,13 @@ Some actions cannot be easily tested here:
 - `enter` on a file opens it in a default associated OS application,
   but `enter` on an executable file does nothing
 - ctrl+@ replaces -- DIR -- with ... first, then with dir size once computed
-- ctrl+w swaps the panels
+- ctrp+p opens a command palette where common list and app actions are present
+  (ordering, hidden toggle, etc.)
 
 TODO: test other commands that have no bindings
 """
 
-from .f2pilot import run_test
+from ..f2pilot import run_test
 
 
 async def test_refresh(sample_fs):
@@ -55,3 +56,14 @@ async def test_open_same(app):
         assert app.inactive_filelist.node.path != app.active_filelist.node.path
         await pilot.press("ctrl+s")
         assert app.inactive_filelist.node.path == app.active_filelist.node.path
+
+
+# FIXME: this test doesn't pass because of how swapping works internally
+#        which by itself causes some bugs (see F2-22)
+# async def test_swap_panels(app):
+#     async with run_test(app) as (pilot, f2pilot):
+#         left_path = app.left.node.path
+#         right_path = app.right.node.path
+#         await pilot.press("ctrl+w")
+#         assert app.left.node.path == right_path
+#         assert app.right.node.path == left_path

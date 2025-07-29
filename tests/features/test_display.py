@@ -8,7 +8,7 @@
 
 from datetime import datetime, timedelta
 
-from .f2pilot import RED, SIZE_NARROW, YELLOW, run_test
+from ..f2pilot import RED, SIZE_NARROW, YELLOW, run_test
 
 
 async def test_simple_names():
