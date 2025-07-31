@@ -14,7 +14,6 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
 
-from f2.config import config
 from f2.fs.node import Node
 from f2.fs.util import breadth_first_walk, is_text_file, shorten
 
@@ -87,7 +86,7 @@ class Preview(Static):
         # collect paths to show, breadth-first, but at most a screenful:
         collected_paths = []  # type: ignore
         for i, p in enumerate(
-            breadth_first_walk(node.fs, node.path, config.show_hidden)
+            breadth_first_walk(node.fs, node.path, self.app.config.display.show_hidden)
         ):
             if i > self._height:
                 break

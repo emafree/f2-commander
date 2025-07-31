@@ -27,8 +27,8 @@ from textual.theme import Theme
 from textual.widget import Widget
 from textual.widgets import Footer
 
+from .config import FileSystem
 from .commands import Command
-from .config import config, set_user_has_accepted_license, user_has_accepted_license
 from .errors import error_handler_async, with_error_handler
 from .fs.arch import is_archive, open_archive, write_archive
 from .fs.node import Node
@@ -177,10 +177,14 @@ class F2Commander(App):
     ]  # type: ignore
     COMMANDS = {F2AppCommands}
 
-    show_hidden = reactive(config.show_hidden)
-    dirs_first = reactive(config.dirs_first)
-    order_case_sensitive = reactive(config.order_case_sensitive)
+    show_hidden = reactive(False)
+    dirs_first = reactive(False)
+    order_case_sensitive = reactive(False)
     swapped = reactive(False)
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
 
     def compose(self) -> ComposeResult:
         self.panels_container = Horizontal()
@@ -207,7 +211,8 @@ class F2Commander(App):
             )
         )
         self.theme = theme
-        config.theme = theme
+        with self.config.autosave() as config:
+            config.display.theme = theme
 
     def action_toggle_hidden(self):
         self.show_hidden = not self.show_hidden
@@ -217,7 +222,8 @@ class F2Commander(App):
             self.left.show_hidden = new  # type: ignore
         if self.right:
             self.right.show_hidden = new  # type: ignore
-        config.show_hidden = new
+        with self.config.autosave() as config:
+            config.display.show_hidden = new
 
     def action_toggle_dirs_first(self):
         self.dirs_first = not self.dirs_first
@@ -227,7 +233,8 @@ class F2Commander(App):
             self.left.dirs_first = new  # type: ignore
         if self.right:
             self.right.dirs_first = new  # type: ignore
-        config.dirs_first = new
+        with self.config.autosave() as config:
+            config.display.dirs_first = new
 
     def action_toggle_order_case_sensitive(self):
         self.order_case_sensitive = not self.order_case_sensitive
@@ -237,7 +244,8 @@ class F2Commander(App):
             self.left.order_case_sensitive = new  # type: ignore
         if self.right:
             self.right.order_case_sensitive = new  # type: ignore
-        config.order_case_sensitive = new
+        with self.config.autosave() as config:
+            config.display.order_case_sensitive = new
 
     def action_swap_panels(self):
         self.swapped = not self.swapped
@@ -293,8 +301,11 @@ class F2Commander(App):
 
     @work
     async def on_mount(self, event):
-        self.theme = config.theme
-        if not user_has_accepted_license():
+        self.show_hidden = self.config.display.show_hidden
+        self.dirs_first = self.config.display.dirs_first
+        self.order_case_sensitive = self.config.display.order_case_sensitive
+        self.theme = self.config.display.theme
+        if not self.config.startup.license_accepted:
             self.action_about()
 
     @on(FileList.Selected)
@@ -761,7 +772,7 @@ class F2Commander(App):
             self.active_filelist.update_listing()
             self.active_filelist.scroll_to_entry(posixpath.basename(output_path))
 
-    def _on_go_to(self, location: Union[str, dict, None]):
+    def _on_go_to(self, location: Union[str, FileSystem, None]):
         if location is None:
             return
 
@@ -780,15 +791,10 @@ class F2Commander(App):
                     StaticDialog.info(f"Cannot navigate to {location}", err_msg)
                 )
 
-        if isinstance(location, dict):
-            protocol = location["protocol"]
-            path = location.get("path")
-            conf = {
-                k: v
-                for k, v in location.items()
-                if k not in ("display_name", "protocol", "path")
-            }
-            fs = fsspec.filesystem(protocol, **conf)
+        if isinstance(location, FileSystem):
+            protocol = location.protocol
+            path = location.path
+            fs = fsspec.filesystem(protocol, **location.params)
             node = Node.from_path(fs, path or "/")
             self.active_filelist.node = node  # type: ignore
 
@@ -832,7 +838,8 @@ class F2Commander(App):
             "You can find a copy of the license at https://mozilla.org/MPL/2.0/"
         )
         await self.push_screen_wait(StaticDialog.info(title, msg))
-        set_user_has_accepted_license()
+        with self.app.config.autosave() as conf:
+            conf.startup.license_accepted = True
 
     def action_help(self):
         self.panel_right.panel_type = "help"

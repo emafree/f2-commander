@@ -4,11 +4,28 @@
 #
 # Copyright (c) 2024 Timur Rubeko
 
+import sys
+
 from .app import F2Commander
-from .config import init_default_config
+from .config import user_config, ConfigError
+
+
+def unsafe_main():
+    try:
+        config = user_config()
+    except ConfigError as err:
+        print("Application could not start because of malformed configuration:")
+        print(err)
+        sys.exit(1)
+    else:
+        app = F2Commander(config)
+        app.run()
 
 
 def main():
-    init_default_config()
-    app = F2Commander()
-    app.run()
+    try:
+        unsafe_main()
+    except Exception as ex:
+        print("Fatal error in the appliaction:")
+        print(ex)
+        sys.exit(2)

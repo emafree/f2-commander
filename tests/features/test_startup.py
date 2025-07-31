@@ -9,10 +9,11 @@
 import os
 
 from f2.app import F2Commander
+from ..f2pilot import SampleConfig
 
 
 async def test_startup():
-    app = F2Commander()
+    app = F2Commander(SampleConfig())
 
     # NOTE: not using F2Pilot explicitly, minimal dependencies in this test
 

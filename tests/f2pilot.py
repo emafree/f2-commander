@@ -11,12 +11,13 @@ F2 Commander-aware pilot features.
 
 import shutil
 import tempfile
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Optional
 
 from f2.app import F2Commander
 from f2.fs.node import Node
+from f2.config import Config
 
 THEME = "textual-dark"
 RED = "#ba3c5b"
@@ -27,6 +28,12 @@ SIZE_SHORT = (200, 30)
 SIZE_NARROW = (80, 80)
 
 SAMPLE_CONTENT = b"foo bar baz qux fred"
+
+
+class SampleConfig(Config):
+    @contextmanager
+    def autosave(self):
+        yield self
 
 
 def _touch(path: Path, size: Optional[int] = None, content: Optional[bytes] = None):
@@ -88,7 +95,13 @@ def create_sample_fs():
 
 
 def create_app():
-    return F2Commander()
+    config = SampleConfig()
+    config.display.theme = THEME
+    config.display.order_case_sensitive = False
+    config.display.dirs_first = False
+    config.display.show_hidden = False
+    config.startup.license_accepted = True
+    return F2Commander(config)
 
 
 @asynccontextmanager
@@ -132,13 +145,6 @@ class F2AppPilot:
     def __init__(self, app, pilot):
         self._app = app
         self._pilot = pilot
-        self._apply_default_config()
-
-    def _apply_default_config(self):
-        self._app.theme = THEME
-        self._app.order_case_sensitive = False
-        self._app.dirs_first = False
-        self._app.show_hidden = False
 
     def go_to(self, path: Path):
         """Navigate to the specified path in the active panel"""

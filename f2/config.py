@@ -2,97 +2,131 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #
-# Copyright (c) 2024 Timur Rubeko
+# Copyright (c) 2025 Timur Rubeko
 
-import ast
 from pathlib import Path
+from typing import Any, Optional
+from contextlib import contextmanager
 
-import dotenv
 import platformdirs
+import pydantic
 
-DEFAULT_CONFIG = f"""
-dirs_first=True
-order_case_sensitive=True
-show_hidden=False
 
-theme="'textual-dark'"
+class ConfigError(Exception):
+    pass
 
-bookmarks = "[
-  '~',
-  '{Path("~") / Path(platformdirs.user_documents_dir()).relative_to(Path.home())}',
-  '{Path("~") / Path(platformdirs.user_downloads_dir()).relative_to(Path.home())}',
-  '{Path("~") / Path(platformdirs.user_pictures_dir()).relative_to(Path.home())}',
-  '{Path("~") / Path(platformdirs.user_videos_dir()).relative_to(Path.home())}',
-  '{Path("~") / Path(platformdirs.user_music_dir()).relative_to(Path.home())}',
-]"
 
-file_systems = "[
-  {{'display_name': 'Rebex.net Demo FTP server', 'protocol': 'ftp', 'host': 'test.rebex.net', 'username': 'demo', 'password': 'password'}},
-]"
-""".strip()  # noqa: E501
+#
+# CONFIG MODEL (and default configuration values)
+#
+
+
+class Display(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    dirs_first: bool = True
+    order_case_sensitive: bool = True
+    show_hidden: bool = False
+    theme: str = "textual-dark"
+
+
+class Bookmarks(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    paths: list[str] = [
+        "~",
+        f"~/{Path(platformdirs.user_documents_dir()).relative_to(Path.home())}",
+        f"~/{Path(platformdirs.user_downloads_dir()).relative_to(Path.home())}",
+        f"~/{Path(platformdirs.user_pictures_dir()).relative_to(Path.home())}",
+        f"~/{Path(platformdirs.user_videos_dir()).relative_to(Path.home())}",
+        f"~/{Path(platformdirs.user_music_dir()).relative_to(Path.home())}",
+    ]
+
+
+class FileSystem(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    display_name: str
+    protocol: str
+    path: str = ""
+    params: dict[str, Any]
+
+
+class Startup(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    license_accepted: bool = False
+
+
+class Config(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    display: Display = Display()
+    bookmarks: Bookmarks = Bookmarks()
+    file_systems: list[FileSystem] = [
+        FileSystem(
+            display_name="Rebex.net Demo FTP server",
+            protocol="ftp",
+            params={
+                "host": "test.rebex.net",
+                "username": "demo",
+                "password": "password",
+            },
+        )
+    ]
+    startup: Startup = Startup()
+
+
+#
+# AUTOSAVE
+#
+
+
+class ConfigWithAutosave(Config):
+    config_path: Optional[Path] = None
+
+    def set_autosave(self, config_path):
+        self.config_path = config_path
+
+    @contextmanager
+    def autosave(self):
+        yield self
+        if self.config_path is not None:
+            self.config_path.write_text(self.model_dump_json(indent=2))
+
+
+#
+# USER-LEVEL CONFIG ENTRY POINT
+#
 
 
 def config_root() -> Path:
     """Path to the directory that hosts all configuration files"""
-
     root_dir = platformdirs.user_config_path("f2commander")
     if not root_dir.exists():
-        root_dir.mkdir()
+        root_dir.mkdir(parents=True)
     return root_dir
 
 
 def user_config_path() -> Path:
     """Path to the file with user's application config"""
+    return config_root() / "config.json"
 
-    config_path = config_root() / "user.env"
+
+def user_config():
+    """
+    Loads and parses user's configuration file and returns a Config instance that
+    automatically saves all changes made on attribute assignment back to the same file.
+    """
+    config_path = user_config_path()
+
     if not config_path.exists():
-        config_path.touch()
-    return config_path
+        config_path.write_text(Config().model_dump_json(indent=2))
 
-
-def init_default_config():
-    if user_config_path().stat().st_size == 0:
-        user_config_path().write_text(DEFAULT_CONFIG)
-
-
-# FIXME: current Config + InstantConfigAttr implementation is straightforward, but
-#        obviously inefficient -> find a good middle ground between the two
-
-
-class InstantConfigAttr:
-    """A descriptor that looks up and saves the values from/to the user config"""
-
-    def __init__(self, default):
-        self._default = default
-        self._conf_path = user_config_path()
-
-    def __set_name__(self, owner, name):
-        self._name = name
-
-    def __get__(self, obj, type):
-        value = dotenv.get_key(self._conf_path, self._name)
-        return ast.literal_eval(value) if value is not None else self._default
-
-    def __set__(self, obj, value):
-        dotenv.set_key(user_config_path(), self._name, repr(value), quote_mode="auto")
-
-
-class Config:
-    dirs_first = InstantConfigAttr(True)
-    order_case_sensitive = InstantConfigAttr(True)
-    show_hidden = InstantConfigAttr(False)
-    theme = InstantConfigAttr("textual-dark")
-    bookmarks = InstantConfigAttr([str(Path.home())])
-    file_systems = InstantConfigAttr([])
-
-
-config = Config()
-
-
-def user_has_accepted_license():
-    """Whether user has accepted the license or not yet"""
-    return (config_root() / "user_has_accepted_license").is_file()
-
-
-def set_user_has_accepted_license():
-    (config_root() / "user_has_accepted_license").touch()
+    try:
+        config = ConfigWithAutosave.model_validate_json(config_path.read_text())
+        config.set_autosave(config_path)
+        return config
+    except pydantic.ValidationError as err:
+        msg = err.json(include_input=False, include_url=False, include_context=False)
+        raise ConfigError(msg)

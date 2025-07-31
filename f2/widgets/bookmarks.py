@@ -16,7 +16,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Label, OptionList
 from textual.widgets.option_list import Option
 
-from f2.config import config
+from f2.config import FileSystem
 
 
 class GoToBookmarkDialog(ModalScreen):
@@ -29,13 +29,17 @@ class GoToBookmarkDialog(ModalScreen):
     def __init__(self):
         super().__init__()
         options = [
-            self._url_to_option(idx, url) for idx, url in enumerate(config.bookmarks)
+            self._url_to_option(idx, url)
+            for idx, url in enumerate(self.app.config.bookmarks.paths)
         ]
-        if config.file_systems:
+        if self.app.config.file_systems:
             options.append(None)
             options.append(Option("Remote file systems:", disabled=True))
             options.extend(
-                [self._remote_fs_to_option(fs_conf) for fs_conf in config.file_systems]
+                [
+                    self._remote_fs_to_option(fs_conf)
+                    for fs_conf in self.app.config.file_systems
+                ]
             )
         self.option_list = OptionList(*options, id="options")
 
@@ -49,10 +53,10 @@ class GoToBookmarkDialog(ModalScreen):
             disabled=not is_url and not is_dir,
         )
 
-    def _remote_fs_to_option(self, fs_conf: dict) -> Option:
+    def _remote_fs_to_option(self, fs_conf: FileSystem) -> Option:
         prefix = (" - ", "grey50")
         return Option(
-            Text.assemble(prefix, " ", fs_conf["display_name"]),  # type: ignore
+            Text.assemble(prefix, " ", fs_conf.display_name),  # type: ignore
         )
 
     def compose(self) -> ComposeResult:
@@ -81,9 +85,11 @@ class GoToBookmarkDialog(ModalScreen):
             self.option_list.action_cursor_up()
 
     def on_index_selected(self, idx):
-        if idx < len(config.bookmarks):
-            value = config.bookmarks[idx]
+        if idx < len(self.app.config.bookmarks.paths):
+            value = self.app.config.bookmarks.paths[idx]
             self.dismiss(value)
         else:
-            fs_conf = config.file_systems[idx - len(config.bookmarks) - 1]
+            fs_conf = self.app.config.file_systems[
+                idx - len(self.app.config.bookmarks.paths) - 1
+            ]
             self.dismiss(fs_conf)
