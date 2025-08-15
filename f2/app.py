@@ -177,10 +177,10 @@ class F2Commander(App):
     ]  # type: ignore
     COMMANDS = {F2AppCommands}
 
-    show_hidden = reactive(False)
-    dirs_first = reactive(False)
-    order_case_sensitive = reactive(False)
-    swapped = reactive(False)
+    show_hidden = reactive(False, init=False)
+    dirs_first = reactive(False, init=False)
+    order_case_sensitive = reactive(False, init=False)
+    swapped = reactive(False, init=False)
 
     def __init__(self, config):
         super().__init__()
