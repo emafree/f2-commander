@@ -10,15 +10,18 @@ the [Validation scenarios and Known bugs](testing.md) for more information.
    - [x] Classic footer with common user actions
      - [ ] Contextual footer (changes actions based on context)
      - [ ] Configurable key bindings. "Modern" and "Retro" bindings out of the box.
-   - [ ] Menubar
+   - [ ] Menu bar
    - [x] Command Palette
    - [x] Preview panel
+     - [x] Text files with syntax highlighting
+     - [x] Images (works in [supported terminal emulators](https://github.com/lnqs/textual-image/tree/main?tab=readme-ov-file#supported-terminals))
+     - [x] Directory trees
    - [ ] File Info panel
    - [x] Drop to shell (command line) temporarily
          - [ ] A simple one-time command input (e.g., an input box on `X`)
    - [ ] "Modern" and "Retro" color themes, ability to customize colors.
    - [x] Mouse click on an empty space below the file list to switch to that panel.
-   - [ ] Welcome screen on the first launch (select theme and keybindgins).
+   - [ ] Welcome screen on the first launch (select theme and key bindgins).
    - [ ] Receive dragged and dropped files
    - [ ] Multiple screens (e.g., open multiple editors, viewers; switch b/w those).
    - [ ] Message line (hints about wrong keys, simple confirmation messages, etc.)

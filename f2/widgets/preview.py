@@ -6,30 +6,42 @@
 
 import posixpath
 import shutil
+from typing import Union
 
 from fsspec import filesystem
 from rich.syntax import Syntax
 from textual.app import ComposeResult
+from textual import work
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
+from textual_image.widget import Image as TextualImage
+from PIL import Image as PillowImage
 
 from f2.config import config
 from f2.fs.node import Node
-from f2.fs.util import breadth_first_walk, is_text_file, shorten
+from f2.fs.util import breadth_first_walk, is_image_file, is_text_file, shorten
 
 
 class Preview(Static):
-    node = reactive(Node.cwd(), recompose=True)
+    DEFAULT_CSS = """
+    .image-size-auto {
+        width: auto;
+        height: auto;
+        align: center middle;
+    }
+    """
+
+    node = reactive(Node.cwd())
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._content = None
+        self._preview_content = None
         self._fs = filesystem("file")
 
     def compose(self) -> ComposeResult:
-        self._content = self._format(self.node)
-        yield Static(self._content)
+        yield TextualImage(None, id="image-preview", classes="image-size-auto")
+        yield Static("", id="text-preview")
 
     def on_mount(self):
         self.node = self.app.active_filelist.cursor_node
@@ -38,14 +50,35 @@ class Preview(Static):
     def on_other_panel_selected(self, node: Node):
         self.node = node
 
-    def watch_node(self, old: Node, new: Node):
+    @work(exclusive=True)
+    async def watch_node(self, old: Node, new: Node):
         parent: Widget = self.parent  # type: ignore
+        image_preview = self.query_one("#image-preview")
+        text_preview = self.query_one("#text-preview")
+
+        # set title:
         parent.border_title = shorten(
             new.path, width_target=self.size.width, method="slice"
         )
         parent.border_subtitle = None
 
-    def _format(self, node: Node):
+        # set a placeholder:
+        image_preview.loading = True
+        text_preview.loading = True
+
+        # update content:
+        self._preview_content = self._format(self.node)
+        text, image = (
+            ("", self._preview_content)
+            if isinstance(self._preview_content, PillowImage.Image)
+            else (self._preview_content, None)
+        )
+        image_preview.image = image
+        text_preview.update(text)
+        image_preview.loading = False
+        text_preview.loading = False
+
+    def _format(self, node: Node) -> Union[str, Syntax, PillowImage]:
         if node is None:
             return ""
         elif node.is_dir:
@@ -56,11 +89,15 @@ class Preview(Static):
                     code=self._head(node), lexer=Syntax.guess_lexer(node.path)
                 )
             except UnicodeDecodeError:
-                # file appears to be a binary file after all
-                return "Cannot preview, probably not a text file"
+                return "Cannot preview: text file cannot be read"
+        elif node.is_file and is_image_file(node.path):
+            try:
+                return PillowImage.open(self.node.path)
+            except OSError:
+                return "Cannot preview: image file cannot be read"
         else:
-            # TODO: leavey a user a possibility to force the preview?
-            return "Cannot preview, probably not a text file"
+            # TODO: leave a user a possibility to force the preview?
+            return "Cannot preview: not a text or an image file"
 
     @property
     def _height(self):
