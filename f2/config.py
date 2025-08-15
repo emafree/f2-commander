@@ -83,16 +83,19 @@ class Config(pydantic.BaseModel):
 
 
 class ConfigWithAutosave(Config):
-    config_path: Optional[Path] = None
+    _config_path: Path
 
-    def set_autosave(self, config_path):
-        self.config_path = config_path
+    def __init__(self, config_path, config):
+        super().__init__(**config.model_dump())
+        self._config_path = config_path
 
     @contextmanager
     def autosave(self):
+        before = self.model_dump_json(indent=2)
         yield self
-        if self.config_path is not None:
-            self.config_path.write_text(self.model_dump_json(indent=2))
+        after = self.model_dump_json(indent=2)
+        if before != after:
+            self._config_path.write_text(after)
 
 
 #
@@ -124,9 +127,9 @@ def user_config():
         config_path.write_text(Config().model_dump_json(indent=2))
 
     try:
-        config = ConfigWithAutosave.model_validate_json(config_path.read_text())
-        config.set_autosave(config_path)
-        return config
+        config = Config.model_validate_json(config_path.read_text())
+        with_autosave = ConfigWithAutosave(config_path, config)
+        return with_autosave
     except pydantic.ValidationError as err:
         msg = err.json(include_input=False, include_url=False, include_context=False)
         raise ConfigError(msg)
