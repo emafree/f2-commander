@@ -182,9 +182,10 @@ class F2Commander(App):
     order_case_sensitive = reactive(False, init=False)
     swapped = reactive(False, init=False)
 
-    def __init__(self, config):
+    def __init__(self, config, debug: bool = False):
         super().__init__()
         self.config = config
+        self.f2_app_debug = debug  # avoid confusion with Textual's debug property
 
     def compose(self) -> ComposeResult:
         self.panels_container = Horizontal()

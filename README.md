@@ -117,7 +117,7 @@ To run all code quality controls:
 To run the application with dev tools:
 
     uv run textual console [-v -x SYSTEM -x EVENT -x DEBUG -x INFO]  # this first!
-    uv run textual run --dev f2.app:F2Commander
+    uv run textual run --dev f2.main:main
 
 To run tests in all target Python versions (typically before a release):
 

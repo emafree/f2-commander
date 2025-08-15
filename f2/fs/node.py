@@ -61,7 +61,7 @@ class Node:
 
         name = stat["name"]
         type_ = stat["type"]
-        size = int(stat.get("size", 0))
+        size = int(stat.get("size") or 0)  # that's correct: get() or 0, for adlfs
         return cls(
             fs=fs,
             path=path,

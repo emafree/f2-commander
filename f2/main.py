@@ -5,27 +5,41 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import sys
+from pathlib import Path
+
+import click
 
 from .app import F2Commander
-from .config import user_config, ConfigError
+from .config import user_config, user_config_path, ConfigError
+from .errors import log_dir, log_uncaught_error
 
 
-def unsafe_main():
+@click.command()
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(file_okay=True, dir_okay=False, readable=True, path_type=Path),
+    default=user_config_path(),
+    show_default=True,
+    help="Configuraiton file path, will be created if does not exist",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help=f"Enable local file logging [logs directory: {log_dir()}]",
+)
+def main(config_path, debug):
     try:
-        config = user_config()
-    except ConfigError as err:
-        print("Application could not start because of malformed configuration:")
-        print(err)
-        sys.exit(1)
-    else:
-        app = F2Commander(config)
+        config = user_config(config_path)
+        app = F2Commander(config=config, debug=debug)
         app.run()
-
-
-def main():
-    try:
-        unsafe_main()
+    except ConfigError as err:
+        click.echo("Application could not start because of malformed configuration:")
+        click.echo(err)
+        log_uncaught_error(debug_enabled=debug)
+        sys.exit(1)
     except Exception as ex:
-        print("Fatal error in the appliaction:")
-        print(ex)
+        click.echo("Fatal error in the appliaction:")
+        click.echo(ex)
+        log_uncaught_error(debug_enabled=debug)
         sys.exit(2)

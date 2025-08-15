@@ -5,7 +5,7 @@
 # Copyright (c) 2025 Timur Rubeko
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from contextlib import contextmanager
 
 import platformdirs
@@ -116,13 +116,11 @@ def user_config_path() -> Path:
     return config_root() / "config.json"
 
 
-def user_config():
+def user_config(config_path: Path):
     """
     Loads and parses user's configuration file and returns a Config instance that
     automatically saves all changes made on attribute assignment back to the same file.
     """
-    config_path = user_config_path()
-
     if not config_path.exists():
         config_path.write_text(Config().model_dump_json(indent=2))
 

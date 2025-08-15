@@ -120,7 +120,6 @@ async def test_preview_dir(sample_fs):
     async with run_test(cwd=sample_fs) as (pilot, f2pilot):
         await f2pilot.select("Documents")
         preview = await open_preview(pilot)
-        print(preview._content)
         assert DOCUMENTS_DIR_TREE in preview._content
 
 
