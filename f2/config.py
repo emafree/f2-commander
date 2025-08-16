@@ -4,12 +4,14 @@
 #
 # Copyright (c) 2025 Timur Rubeko
 
+import ast
 from pathlib import Path
 from typing import Any
 from contextlib import contextmanager
 
 import platformdirs
 import pydantic
+import dotenv
 
 
 class ConfigError(Exception):
@@ -99,6 +101,63 @@ class ConfigWithAutosave(Config):
 
 
 #
+# BACKWARD COMPATIBILITY WITH OLD .ENV CONFIG
+#
+
+
+def migrate_legacy_config():
+    config_path = user_config_path()
+    if config_path.is_file():
+        # default configuration file already exists, do not change it
+        return
+
+    dotenv_path = config_root() / "user.env"
+    if not dotenv_path.is_file():
+        # legacy configuration file is not found, nothing to migrate
+        return
+
+    license_accepted_path = config_root() / "user_has_accepted_license"
+
+    legacy_config = dotenv.dotenv_values(dotenv_path)
+
+    config = Config()
+    if "dirs_first" in legacy_config:
+        config.display.dirs_first = legacy_config["dirs_first"]
+    if "order_case_sensitive" in legacy_config:
+        config.display.order_case_sensitive = legacy_config["order_case_sensitive"]
+    if "show_hidden" in legacy_config:
+        config.display.show_hidden = legacy_config["show_hidden"]
+    if "theme" in legacy_config:
+        config.display.theme = ast.literal_eval(legacy_config["theme"])
+    if "bookmarks" in legacy_config:
+        config.bookmarks.paths = ast.literal_eval(legacy_config["bookmarks"])
+    if "file_systems" in legacy_config:
+        config.file_systems = []
+        legacy_file_systems = ast.literal_eval(legacy_config.get("file_systems"))
+        for legacy_fs in legacy_file_systems:
+            if "display_name" not in legacy_fs or "protocol" not in legacy_fs:
+                continue
+            fs = FileSystem(
+                display_name=legacy_fs["display_name"],
+                protocol=legacy_fs["protocol"],
+                path=legacy_fs.get("path", ""),
+                params={
+                    k: v
+                    for k, v in legacy_fs.items()
+                    if k not in ("display_name", "protocol", "path")
+                },
+            )
+            config.file_systems.append(fs)
+    config.startup.license_accepted = license_accepted_path.is_file()
+
+    config_path.write_text(config.model_dump_json(indent=2))
+
+    dotenv_path.rename(f"{dotenv_path}.bak")
+    if license_accepted_path.is_file():
+        license_accepted_path.unlink()
+
+
+#
 # USER-LEVEL CONFIG ENTRY POINT
 #
 
@@ -119,7 +178,7 @@ def user_config_path() -> Path:
 def user_config(config_path: Path):
     """
     Loads and parses user's configuration file and returns a Config instance that
-    automatically saves all changes made on attribute assignment back to the same file.
+    can also automatically save changes made within the autosave() context.
     """
     if not config_path.exists():
         config_path.write_text(Config().model_dump_json(indent=2))

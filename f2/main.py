@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 
 from .app import F2Commander
-from .config import user_config, user_config_path, ConfigError
+from .config import user_config, user_config_path, migrate_legacy_config, ConfigError
 from .errors import log_dir, log_uncaught_error
 
 
@@ -30,6 +30,7 @@ from .errors import log_dir, log_uncaught_error
 )
 def main(config_path, debug):
     try:
+        migrate_legacy_config()
         config = user_config(config_path)
         app = F2Commander(config=config, debug=debug)
         app.run()
