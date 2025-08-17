@@ -23,6 +23,7 @@ from typing import Any, Iterator, Optional
 
 from fsspec import AbstractFileSystem
 from send2trash import send2trash
+from PIL import Image as PillowImage
 
 TEXT_MIMETYPES = [
     # in addition to text/*, these are also considered to be text files:
@@ -35,6 +36,12 @@ TEXT_MIMETYPES = [
     "application/x-msdownload",  # .bat
     "message/rfc822",  # .eml
 ]
+
+IMG_EXTENSIONS = {
+    ext.lower()
+    for ext in PillowImage.registered_extensions().keys()
+    if ext.lower() != ".pdf"  # exclude PDF files from image preview
+}
 
 
 def find_mtime(info: dict[str, Any]) -> float:
@@ -157,6 +164,11 @@ def is_text_file(path: str) -> bool:
         or mime_type.endswith("+json")
         or mime_type in TEXT_MIMETYPES
     )
+
+
+def is_image_file(path: str) -> bool:
+    _, ext = posixpath.splitext(path)
+    return ext.lower() in IMG_EXTENSIONS
 
 
 def breadth_first_walk(

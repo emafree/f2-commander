@@ -66,7 +66,7 @@ work-in-progress as indicated below.
  - [x] Multiple file selection
  - [x] View and edit files
  - [x] Configurable bookmarks. Quick "Go to path".
- - [x] Preview panel
+ - [x] Preview panel (text with syntax highlighting, image, and direcotry tree preview)
  - [x] Drop to shell
  - [x] User-level configuration file
  - [x] Extensive "Remote File systems" support. A non-exhaustive list
