@@ -8,12 +8,14 @@ import os
 import posixpath
 import subprocess
 import tempfile
+import time
 from functools import partial
 from importlib.metadata import version
 from pathlib import Path
 from typing import Optional, Union
 
 import fsspec
+from packaging.version import Version
 from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -34,6 +36,7 @@ from .fs.arch import is_archive, open_archive, write_archive
 from .fs.node import Node
 from .fs.util import copy, copy_final_path, delete, mkdir, mkfile, move, rename
 from .shell import editor, native_open, shell, viewer
+from .update import check_for_updates
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.connect import ConnectToRemoteDialog
 from .widgets.dialogs import InputDialog, SelectDialog, StaticDialog, Style
@@ -152,6 +155,11 @@ class F2Commander(App):
             "change_theme",
             "Change theme",
             "Change the theme (colors)",
+        ),
+        Command(
+            "check_for_updates",
+            "Check for updates",
+            "Check if a newer version is available in PyPI",
         ),
         Command(
             "about",
@@ -308,6 +316,8 @@ class F2Commander(App):
         self.theme = self.config.display.theme
         if not self.config.startup.license_accepted:
             self.action_about()
+        if self.config.startup.check_for_updates:
+            self.action_check_for_updates(auto=True)
 
     @on(FileList.Selected)
     def on_file_selected(self, event: FileList.Selected):
@@ -829,6 +839,46 @@ class F2Commander(App):
     async def action_quit(self):
         if await self.push_screen_wait(StaticDialog("Quit?")):
             self.exit()
+
+    @work
+    async def action_check_for_updates(self, auto=False):
+        # avoid checking too frequently:
+        one_day = 1 * 24 * 60 * 60
+        since_last_check = time.time() - self.config.startup.last_update_check_time
+        if auto and since_last_check < one_day:
+            return
+
+        # try getting the versions:
+        try:
+            current, latest = check_for_updates()
+        except Exception as ex:
+            if not auto:
+                await self.push_screen_wait(
+                    StaticDialog.warning("Update check failed", str(ex))
+                )
+            return
+
+        if latest > current:
+            already_notified = latest == Version(self.config.startup.last_update_check_version)
+            if auto and already_notified:
+                # do not notify about the same version more than once
+                pass
+            else:
+                title = "A newer version is available"
+                msg = (
+                    f"An update is available: {current} -> {latest}.\n"
+                    "To update, run `pipx upgrade f2-commander` or an equivalent."
+                )
+                await self.push_screen_wait(StaticDialog.info(title, msg))
+
+        elif not auto:
+            title = "Up to date!"
+            msg = f"You are currently using the latest version: {current}"
+            await self.push_screen_wait(StaticDialog.info(title, msg))
+
+        with self.config.autosave() as config:
+            config.startup.last_update_check_time = int(time.time())
+            config.startup.last_update_check_version = str(latest)
 
     @work
     async def action_about(self):

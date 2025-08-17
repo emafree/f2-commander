@@ -59,6 +59,10 @@ class Startup(pydantic.BaseModel):
 
     license_accepted: bool = False
 
+    check_for_updates: bool = True
+    last_update_check_time: int = 0
+    last_update_check_version: str = "0"
+
 
 class Config(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(validate_assignment=True)
