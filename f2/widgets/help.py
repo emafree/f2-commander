@@ -162,50 +162,44 @@ Themes are built-in and are not customizable in this version of the application.
 
 ## Configuration
 
-Your configuration file is:
+A deafult configuration is provided with the application. Your configuration file is:
 
     {str(user_config_path())}
 
-You can use "Show the configuration directory" command from the Command Palette.
+Or, use "Show the configuration directory" command from the Command Palette to
+navigate to it.
 
-Configuration file is a simple list of key-value pairs, similar to how variables are
-declared in Bash. The syntax is that of
-`.env` files (see https://saurabh-kumar.com/python-dotenv/#file-format).
-Allowed values are Python primitives: strings, numbers, boolean `True` or `False`
-(capitalized) and collection of these values (lists, dicts). Values can be quoted.
-
-A deafult configuration is provided with the application.
-
-The application may write to the configuration file (e.g., when you change the
-settings within the application itself), but will preserve all other content and
-formatting.
+Beware: the application may also write to the configuration file as you use it.
 
 ### Bookmarks
 
-Bookmarks can be defined under the `bookmarks` key as a list of paths. Every path and
-the value itself must be quoted. For example:
+Bookmarks are defined under `bookmarks.paths` as a plain list of local paths:
 
-    bookmarks = "[
-      '~',
-      '~/Documents',
-      '~/Downloads',
-      '~/Pictures',
-      '~/Videos',
-      '~/Music',
-    ]"
+    "bookmarks": {{
+      "paths": [
+        "~",
+        "~/Documents",
+        "~/Downloads",
+        "~/Pictures",
+        "~/Videos",
+        "~/Music"
+      ]
+    }}
 
-By default, bookmarks are set to the typical desktop locations, similar to the example.
+By default, bookmarks are set to the typical desktop locations, similar to the
+example above.
 
 ### Remote file systems
 
 Connection configuration for remote file systems can be persisted and accessed
 from the "Bookmarks" dialog.
 
-Connection configuration is defined under `file_systems` key, as a list of connection
-objects. Every connection object is a set of key-value pairs, with following keys:
+Connection configuration is defined under `file_systems`, as a list of connection
+objects. Each connection object defines:
 
- - `'display_name'`: a title that will be shown in the bookmarks list
- - `'protocol'`: a name of the protocol recognized by fsspec
+ - `display_name`: a title that will be shown in the bookmarks list
+ - `protocol`: a name of the protocol recognized by fsspec
+ - `path`: an optional default path to navigate to upon connecting (defaults to root)
  - other keys are considered to be fsspec `storage_options`
    (see https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.filesystem)
 
@@ -214,9 +208,16 @@ about the remote file system configuration.
 
 For example, to connect to an ADLS Gen2 storage account:
 
-    file_systems = "[
-      {{'display_name': 'My BLOB storage', 'protocol': 'abfs', 'account_name': 'myaccount', 'account_key': 'mykey'}},
-    ]"
+    file_systems = [
+      {{
+        "display_name": "My BLOB storage",
+        "protocol": "abfs",
+        "params": {{
+          "account_name": "myaccount",
+          "account_key": "mykey"
+        }}
+      }}
+    ]
 
 To connect to a remote file system you may need to install additional packages that
 provide `fsspec` implementations for the desired protocol. To find the name of the
@@ -226,10 +227,6 @@ For example, if you installed F2 Commander with `pipx`, and you want to connect
 to an S3 bucket, you need to install the `s3fs` package:
 
     pipx inject f2-commander s3fs
-
-Remote bookmarks are in "alpha" version, exposing the underlying connector
-configuration in a very generic way. Refer to the documentation of the installed
-additional packages for more information.
 
 ## License
 

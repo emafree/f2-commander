@@ -2,7 +2,7 @@
 
 F2 Commander is an orthodox file manager for the modern world.
 
-![F2 Commander Showcase](docs/img/f2.png "F2 Commander Showcase")
+![F2 Commander Showcase](f2.png "F2 Commander Screenshot")
 
 ## Installation
 
@@ -44,10 +44,6 @@ provided "as is", without warranty of any kind.
 
 ## Features
 
-Below is a short summary. For a complete list of features, existing and
-planned, see the [complete feature list](docs/features.md). Some features are a
-work-in-progress as indicated below.
-
  - [x] Works in Linux, macOS
  - [ ] Works in WSL (should work, but to be extensively tested)
  - [x] An orthodox two-panel interface with a footer menu
@@ -61,14 +57,13 @@ work-in-progress as indicated below.
  - [ ] Recursive file search. Find in (text) files.
  - [x] Integration with native OS applications (open a directory in a file
        manager, open a file with a default program)
- - [x] File and directory manipulation (copy, move, move to trash,
-   etc.)
+ - [x] File and directory manipulation (copy, move, move to trash, etc.)
  - [x] Multiple file selection
  - [x] View and edit files
  - [x] Configurable bookmarks. Quick "Go to path".
  - [x] Preview panel (text with syntax highlighting, image, and direcotry tree preview)
  - [x] Drop to shell
- - [x] User-level configuration file
+ - [x] User-level JSON configuration file
  - [x] Extensive "Remote File systems" support. A non-exhaustive list
        includes: AWS S3, GCP GCS, Azure ADLS, OCI, OSS, DVC, LakeFS, HDFS,
        Dropbox, Google Drive, FTP/FTPS, SFTP, SMB, WebDAV, and many more.
@@ -81,17 +76,16 @@ work-in-progress as indicated below.
        everything supported by [libarchive](https://github.com/libarchive/libarchive).
  - [x] Multiple color themes
  - [x] Built-in help
+ - [x] Built-in update check
 
-> \*\*Note: Remote file systems are in *preview*. All features are available,
+> \*\*Remote file systems are in *preview*. All features are available,
 > but not extensively tested. Connection dialog is rather crude, but is
 > otherwise functional. Connections can be preconfigured in a configuration
-> file using raw `fsspec` key-value format (see built-in help for more deatils).
+> file.
 
 And, hopefully, a polished up user experience that you'd normally expect from
 a robust file manager. Feel free to submit any issues to make F2 Commander
 even better!
-
-See also a [list of known bugs](docs/testing.md).
 
 ## Development environment
 

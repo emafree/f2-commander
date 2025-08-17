@@ -859,7 +859,9 @@ class F2Commander(App):
             return
 
         if latest > current:
-            already_notified = latest == Version(self.config.startup.last_update_check_version)
+            already_notified = latest == Version(
+                self.config.startup.last_update_check_version
+            )
             if auto and already_notified:
                 # do not notify about the same version more than once
                 pass

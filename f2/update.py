@@ -16,9 +16,7 @@ def check_for_updates() -> Tuple[Version, Version]:
     """Check if a newer version is available on PyPI."""
     current_version = version("f2-commander")
 
-    with urllib.request.urlopen(
-        "https://pypi.org/pypi/f2-commander/json"
-    ) as response:
+    with urllib.request.urlopen("https://pypi.org/pypi/f2-commander/json") as response:
         data = json.load(response)
         latest_version = data["info"]["version"]
 
