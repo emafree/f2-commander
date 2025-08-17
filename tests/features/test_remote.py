@@ -6,9 +6,9 @@
 
 """Test the remote connection dialog"""
 
-from ..f2pilot import run_test
 from f2.widgets.connect import ConnectToRemoteDialog
 
+from ..f2pilot import run_test
 
 # TODO: remote connection tests
 

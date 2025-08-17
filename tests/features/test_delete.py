@@ -12,7 +12,6 @@ from f2.widgets.dialogs import StaticDialog
 
 from ..f2pilot import run_test
 
-
 # NOTE: some manual testing required, or more automation to verify Trash behavior:
 # - verify that files are put in Trash
 # - verify that files from Trash can be actually restored

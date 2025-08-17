@@ -10,7 +10,6 @@ import pytest
 
 from ..f2pilot import YELLOW, run_test
 
-
 EXCLUDE = ["backup.zip"]  # archive already has YELLOW in its style
 
 

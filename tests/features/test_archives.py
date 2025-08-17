@@ -8,7 +8,6 @@
 
 from ..f2pilot import run_test
 
-
 # TODO: remote connection tests
 
 

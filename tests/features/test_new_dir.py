@@ -12,7 +12,6 @@ from f2.widgets.dialogs import InputDialog, StaticDialog
 
 from ..f2pilot import run_test
 
-
 # TODO: parametize all tests to test remote deelete behavior (hard delete, no Trash)
 
 

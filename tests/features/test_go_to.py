@@ -8,8 +8,9 @@
 
 import os
 
+from f2.widgets.dialogs import InputDialog, StaticDialog
+
 from ..f2pilot import run_test
-from f2.widgets.dialogs import StaticDialog, InputDialog
 
 
 async def test_go_to_dialog(app, sample_fs):

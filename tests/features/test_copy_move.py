@@ -6,16 +6,16 @@
 
 """Test copy and move features"""
 
-import time
 import stat
-import pytest
+import time
 from pathlib import Path
 from typing import Optional
 
-from f2.widgets.dialogs import StaticDialog, InputDialog
+import pytest
 
-from ..f2pilot import run_test, SAMPLE_CONTENT
+from f2.widgets.dialogs import InputDialog, StaticDialog
 
+from ..f2pilot import SAMPLE_CONTENT, run_test
 
 # TODO: parametize all tests to test remote copy behavior, including
 #       download, upload and download-upload

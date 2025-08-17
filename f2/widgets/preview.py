@@ -9,14 +9,14 @@ import shutil
 from typing import Union
 
 from fsspec import filesystem
+from PIL import Image as PillowImage
 from rich.syntax import Syntax
-from textual.app import ComposeResult
 from textual import work
+from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
 from textual_image.widget import Image as TextualImage
-from PIL import Image as PillowImage
 
 from f2.fs.node import Node
 from f2.fs.util import breadth_first_walk, is_image_file, is_text_file, shorten

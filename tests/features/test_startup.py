@@ -9,6 +9,7 @@
 import os
 
 from f2.app import F2Commander
+
 from ..f2pilot import SampleConfig
 
 

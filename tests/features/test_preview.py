@@ -6,12 +6,12 @@
 
 """Test Preview panel"""
 
-from ..f2pilot import run_test, SAMPLE_CONTENT
-from f2.widgets.preview import Preview
-from f2.widgets.dialogs import SelectDialog
-
 from PIL import Image as PillowImage
 
+from f2.widgets.dialogs import SelectDialog
+from f2.widgets.preview import Preview
+
+from ..f2pilot import SAMPLE_CONTENT, run_test
 
 # Other test cases chosen not to be automated:
 #

@@ -5,13 +5,13 @@
 # Copyright (c) 2025 Timur Rubeko
 
 import ast
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
-from contextlib import contextmanager
 
+import dotenv
 import platformdirs
 import pydantic
-import dotenv
 
 
 class ConfigError(Exception):

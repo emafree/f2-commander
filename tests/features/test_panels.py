@@ -7,11 +7,13 @@
 """Test panel switcher"""
 
 import pytest
-from ..f2pilot import run_test
-from f2.widgets.dialogs import SelectDialog
-from f2.widgets.preview import Preview
-from f2.widgets.filelist import FileList
 from textual.widgets import Select
+
+from f2.widgets.dialogs import SelectDialog
+from f2.widgets.filelist import FileList
+from f2.widgets.preview import Preview
+
+from ..f2pilot import run_test
 
 
 @pytest.mark.parametrize("key,side", [("ctrl+e", "left"), ("ctrl+r", "right")])

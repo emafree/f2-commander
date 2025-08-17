@@ -6,7 +6,7 @@
 
 """Test common dialogs"""
 
-from f2.widgets.dialogs import StaticDialog, InputDialog
+from f2.widgets.dialogs import InputDialog, StaticDialog
 
 from ..f2pilot import run_test
 

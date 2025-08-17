@@ -6,8 +6,9 @@
 
 """Test the bookmarks dialog"""
 
-from ..f2pilot import run_test
 from f2.widgets.bookmarks import GoToBookmarkDialog
+
+from ..f2pilot import run_test
 
 # Scenarios:
 #

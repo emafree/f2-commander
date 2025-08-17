@@ -8,8 +8,8 @@ import re
 from enum import Enum
 from typing import Optional
 
-from rich.text import Text
 from rich.markup import escape as rich_escape
+from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding

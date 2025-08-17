@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 
 from .app import F2Commander
-from .config import user_config, user_config_path, migrate_legacy_config, ConfigError
+from .config import ConfigError, migrate_legacy_config, user_config, user_config_path
 from .errors import log_dir, log_uncaught_error
 
 

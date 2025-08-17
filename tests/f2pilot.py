@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Optional
 
 from f2.app import F2Commander
-from f2.fs.node import Node
 from f2.config import Config
+from f2.fs.node import Node
 
 THEME = "textual-dark"
 RED = "#ba3c5b"

@@ -22,8 +22,8 @@ from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from fsspec import AbstractFileSystem
-from send2trash import send2trash
 from PIL import Image as PillowImage
+from send2trash import send2trash
 
 TEXT_MIMETYPES = [
     # in addition to text/*, these are also considered to be text files:

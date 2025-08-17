@@ -27,8 +27,8 @@ from textual.theme import Theme
 from textual.widget import Widget
 from textual.widgets import Footer
 
-from .config import FileSystem
 from .commands import Command
+from .config import FileSystem
 from .errors import error_handler_async, with_error_handler
 from .fs.arch import is_archive, open_archive, write_archive
 from .fs.node import Node
