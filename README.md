@@ -17,7 +17,7 @@ or:
 From source:
 
     uv build
-    pipx install [--force] dist/f2_commander-0.6.0.tar.gz
+    pipx install [--force] dist/f2_commander-0.6.1.tar.gz
 
 This software is designed to work in Linux and macOS. It should also work in
 WSL (Windows Subsystem for Linux).

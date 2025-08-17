@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Optional, Union
 
 import fsspec
-from packaging.version import Version
 from rich.text import Text
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -859,9 +858,8 @@ class F2Commander(App):
             return
 
         if latest > current:
-            already_notified = latest == Version(
-                self.config.startup.last_update_check_version
-            )
+            already_notified = latest == self.config.startup.last_update_check_version
+
             if auto and already_notified:
                 # do not notify about the same version more than once
                 pass

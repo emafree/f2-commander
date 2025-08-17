@@ -1,6 +1,6 @@
 [project]
 name = "f2-commander"
-version = "0.6.0"
+version = "0.6.1"
 description = "F2 Commander is an orthodox file manager for the modern world."
 license = "MPL-2.0"
 license-files = ["LICENSE"]

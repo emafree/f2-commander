@@ -9,10 +9,8 @@ import urllib.request
 from importlib.metadata import version
 from typing import Tuple
 
-from packaging.version import Version
 
-
-def check_for_updates() -> Tuple[Version, Version]:
+def check_for_updates() -> Tuple[str, str]:
     """Check if a newer version is available on PyPI."""
     current_version = version("f2-commander")
 
@@ -20,4 +18,4 @@ def check_for_updates() -> Tuple[Version, Version]:
         data = json.load(response)
         latest_version = data["info"]["version"]
 
-    return Version(current_version), Version(latest_version)
+    return current_version, latest_version
