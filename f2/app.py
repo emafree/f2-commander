@@ -6,6 +6,7 @@
 
 import os
 import posixpath
+import shlex
 import subprocess
 import tempfile
 import time
@@ -34,11 +35,12 @@ from .errors import error_handler_async, with_error_handler
 from .fs.arch import is_archive, open_archive, write_archive
 from .fs.node import Node
 from .fs.util import copy, copy_final_path, delete, mkdir, mkfile, move, rename
-from .shell import editor, native_open, shell, viewer
+from .shell import default_editor, default_shell, default_viewer, native_open
 from .update import check_for_updates
 from .widgets.bookmarks import GoToBookmarkDialog
+from .widgets.config import ConfigDialog
 from .widgets.connect import ConnectToRemoteDialog
-from .widgets.dialogs import InputDialog, SelectDialog, StaticDialog, Style
+from .widgets.dialogs import InputDialog, StaticDialog, Style
 from .widgets.filelist import FileList
 from .widgets.panel import Panel
 
@@ -151,9 +153,9 @@ class F2Commander(App):
             "Whether name ordering is case sensitive or not",
         ),
         Command(
-            "change_theme",
-            "Change theme",
-            "Change the theme (colors)",
+            "configure",
+            "Configuration",
+            "Review and modify the app configuration options",
         ),
         Command(
             "check_for_updates",
@@ -207,20 +209,6 @@ class F2Commander(App):
     def theme_(self) -> Theme:
         """Active Theme instance (App.theme is a theme name only)"""
         return self.app.available_themes[self.app.theme]
-
-    @work
-    async def action_change_theme(self):
-        theme = await self.push_screen_wait(
-            SelectDialog(
-                title="Change the theme to:",
-                options=sorted([(t, t) for t in self.available_themes.keys()]),
-                value=self.theme,
-                allow_blank=False,
-            )
-        )
-        self.theme = theme
-        with self.config.autosave() as config:
-            config.display.theme = theme
 
     def action_toggle_hidden(self):
         self.show_hidden = not self.show_hidden
@@ -309,20 +297,38 @@ class F2Commander(App):
 
     @work
     async def on_mount(self, event):
-        self.show_hidden = self.config.display.show_hidden
-        self.dirs_first = self.config.display.dirs_first
-        self.order_case_sensitive = self.config.display.order_case_sensitive
-        self.theme = self.config.display.theme
+        self.reload_config()
         if not self.config.startup.license_accepted:
             self.action_about()
         if self.config.startup.check_for_updates:
             self.action_check_for_updates(auto=True)
+
+    def reload_config(self):
+        self.show_hidden = self.config.display.show_hidden
+        self.dirs_first = self.config.display.dirs_first
+        self.order_case_sensitive = self.config.display.order_case_sensitive
+        self.theme = self.config.display.theme
 
     @on(FileList.Selected)
     def on_file_selected(self, event: FileList.Selected):
         for c in self.query("Panel > *"):
             if hasattr(c, "on_other_panel_selected"):
                 c.on_other_panel_selected(event.node)
+
+    def subprocess_run(self, cmd: str, *args, **kwargs) -> Optional[int]:
+        """Run a command in a subprocess and return its exit code, if it was executed."""
+
+        err = None
+        with self.suspend():
+            try:
+                full_cmd = shlex.split(cmd)
+                full_cmd.extend(args)
+                return subprocess.run(full_cmd, **kwargs).returncode
+            except Exception as ex:
+                err = str(ex)
+        if err is not None:
+            self.push_screen(StaticDialog.error("Error", err))
+            return None
 
     @on(FileList.Open)
     def on_file_opened(self, event: FileList.Open):
@@ -340,11 +346,9 @@ class F2Commander(App):
             else:
                 open_cmd = native_open()
                 if open_cmd is not None:
-                    with self.app.suspend():
-                        completed_process = subprocess.run(open_cmd + [path])
+                    exit_code = self.subprocess_run(open_cmd, path)
                     self.app.refresh()
-                    exit_code = completed_process.returncode
-                    if exit_code != 0:
+                    if exit_code:
                         msg = f"Application exited with an error ({exit_code})"
                         self.push_screen(StaticDialog.warning("Warning", msg))
                 else:
@@ -420,13 +424,11 @@ class F2Commander(App):
             return
 
         def _view(path: str):
-            viewer_cmd = viewer(or_editor=True)
+            viewer_cmd = self.app.config.system.viewer or default_viewer(or_editor=True)
             if viewer_cmd is not None:
-                with self.app.suspend():
-                    completed_process = subprocess.run(viewer_cmd + [path])
+                exit_code = self.subprocess_run(viewer_cmd, path)
                 self.refresh()
-                exit_code = completed_process.returncode
-                if exit_code != 0:
+                if exit_code:
                     msg = f"Viewer exited with an error ({exit_code})"
                     self.push_screen(StaticDialog.warning("Warning", msg))
             else:
@@ -450,13 +452,11 @@ class F2Commander(App):
             return
 
         def _edit(path: str):
-            editor_cmd = editor()
+            editor_cmd = self.app.config.system.editor or default_editor()
             if editor_cmd is not None:
-                with self.app.suspend():
-                    completed_process = subprocess.run(editor_cmd + [path])
+                exit_code = self.subprocess_run(editor_cmd, path)
                 self.refresh()
-                exit_code = completed_process.returncode
-                if exit_code != 0:
+                if exit_code:
                     msg = f"Editor exited with an error ({exit_code})"
                     self.push_screen(StaticDialog.warning("Warning", msg))
             else:
@@ -707,14 +707,12 @@ class F2Commander(App):
         node = self.active_filelist.node
         cwd = node.path if node.is_local else Path.cwd()
 
-        shell_cmd = shell()
+        shell_cmd = self.app.config.system.shell or default_shell()
         if shell_cmd is not None:
-            with self.app.suspend():
-                completed_process = subprocess.run(shell_cmd, cwd=cwd)
+            exit_code = self.subprocess_run(shell_cmd, cwd=cwd)
             self.refresh()
             self.active_filelist.update_listing()
             self.inactive_filelist.update_listing()
-            exit_code = completed_process.returncode
             if exit_code != 0:
                 msg = f"Shell exited with an error ({exit_code})"
                 self.push_screen(StaticDialog.warning("Warning", msg))
@@ -838,6 +836,10 @@ class F2Commander(App):
     async def action_quit(self):
         if await self.push_screen_wait(StaticDialog("Quit?")):
             self.exit()
+
+    @work
+    async def action_configure(self):
+        await self.push_screen_wait(ConfigDialog())
 
     @work
     async def action_check_for_updates(self, auto=False):

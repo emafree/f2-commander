@@ -62,13 +62,8 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
-[tool.black]
+[tool.ruff]
 line-length = 88
-target-version = ['py310']
-
-[tool.isort]
-line_length = 88
-profile = 'black'
 
 [tool.mypy]
 ignore_missing_imports = true

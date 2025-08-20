@@ -7,7 +7,7 @@
 import ast
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import dotenv
 import platformdirs
@@ -64,6 +64,14 @@ class Startup(pydantic.BaseModel):
     last_update_check_version: str = "0"
 
 
+class System(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    editor: Optional[str] = None
+    viewer: Optional[str] = None
+    shell: Optional[str] = None
+
+
 class Config(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(validate_assignment=True)
 
@@ -81,6 +89,7 @@ class Config(pydantic.BaseModel):
         )
     ]
     startup: Startup = Startup()
+    system: System = System()
 
 
 #

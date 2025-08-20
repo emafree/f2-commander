@@ -6,7 +6,6 @@
 
 import dataclasses
 import functools
-import subprocess
 import time
 from dataclasses import dataclass
 from typing import Optional, Tuple
@@ -528,8 +527,7 @@ class FileList(Static):
         # FIXME: the rest of code does not belong to the action implementation?
         open_cmd = native_open()
         if open_cmd is not None:
-            with self.app.suspend():
-                subprocess.run(open_cmd + [self.node.path])
+            self.app.subprocess_run(open_cmd, self.node.path)
             self.app.refresh()
 
     def action_navigate_to_config(self):
