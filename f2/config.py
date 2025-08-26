@@ -64,6 +64,12 @@ class Startup(pydantic.BaseModel):
     last_update_check_version: str = "0"
 
 
+class System(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(validate_assignment=True)
+
+    ask_before_quit: bool = True
+
+
 class Config(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(validate_assignment=True)
 
@@ -81,6 +87,7 @@ class Config(pydantic.BaseModel):
         )
     ]
     startup: Startup = Startup()
+    system: System = System()
 
 
 #

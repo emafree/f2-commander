@@ -6,7 +6,7 @@
 
 import re
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union, Tuple, override
 
 from rich.markup import escape as rich_escape
 from rich.text import Text
@@ -15,7 +15,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Select, Static
+from textual.widgets import Button, Checkbox, Input, Label, Select, Static
 
 RE_RICH_MARKUP = re.compile(r"(\\*)(\[.[^[]*?])")
 
@@ -71,13 +71,17 @@ class StaticDialog(ModalScreen[bool]):
         with Vertical(id="dialog", classes=f"{self.style.value} {user_classes}"):
             yield Label(self.title, id="title")  # type: ignore
             if self.message is not None:
-                clean_message = escape(self.message)  # sanitize unctrolled inputs
+                clean_message = escape(self.message)  # sanitize uncontrolled inputs
                 yield Static(clean_message, id="message")  # Static wraps long text
             with Horizontal(id="buttons"):
+                yield from self._compose_aux()
                 if self.btn_ok is not None:
                     yield Button(self.btn_ok, variant="primary", id="ok")
                 if self.btn_cancel is not None:
                     yield Button(self.btn_cancel, variant="default", id="cancel")
+
+    def _compose_aux(self) -> ComposeResult:
+        return []
 
     def on_mount(self) -> None:
         if self.btn_cancel is not None:
@@ -94,17 +98,42 @@ class StaticDialog(ModalScreen[bool]):
     @classmethod
     def info(cls, *args, **kwargs):
         """Simple info message dialog"""
-        return StaticDialog(btn_cancel=None, style=Style.INFO, *args, **kwargs)
+        return cls(btn_cancel=None, style=Style.INFO, *args, **kwargs)
 
     @classmethod
     def warning(cls, *args, **kwargs):
         """Simple warning message dialog"""
-        return StaticDialog(btn_cancel=None, style=Style.WARNING, *args, **kwargs)
+        return cls(btn_cancel=None, style=Style.WARNING, *args, **kwargs)
 
     @classmethod
     def error(cls, *args, **kwargs):
         """Simple error message dialog"""
-        return StaticDialog(btn_cancel=None, style=Style.DANGER, *args, **kwargs)
+        return cls(btn_cancel=None, style=Style.DANGER, *args, **kwargs)
+
+
+class StaticDialogR(StaticDialog, ModalScreen[Tuple[bool, bool]]):
+    """
+    Same as StaticDialog, but with a checkbox to remember the choice.
+    Remembering the choice and acting on it is done by the caller.
+    """
+
+    def __init__(self, remember: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.remember = remember
+
+    @override
+    def _compose_aux(self) -> ComposeResult:
+        yield Horizontal(Checkbox(value=False, id="remember", label=self.remember))
+
+    @override
+    def on_mount(self) -> None:
+        super().on_mount()
+        self.query_one("#remember").can_focus = False
+
+    @override
+    def dismiss(self, value: Optional[Union[bool, Tuple[bool, bool]]]) -> None:
+        remember_value = self.query_one("#remember", Checkbox).value
+        super().dismiss((value, remember_value))
 
 
 class InputDialog(ModalScreen[Optional[str]]):
