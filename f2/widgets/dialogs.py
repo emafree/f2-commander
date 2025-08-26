@@ -6,7 +6,7 @@
 
 import re
 from enum import Enum
-from typing import Optional, Union, Tuple, override
+from typing import Optional, Tuple, Union, override
 
 from rich.markup import escape as rich_escape
 from rich.text import Text
