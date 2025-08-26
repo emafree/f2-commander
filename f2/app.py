@@ -40,7 +40,7 @@ from .update import check_for_updates
 from .widgets.bookmarks import GoToBookmarkDialog
 from .widgets.config import ConfigDialog
 from .widgets.connect import ConnectToRemoteDialog
-from .widgets.dialogs import InputDialog, StaticDialog, Style
+from .widgets.dialogs import InputDialog, StaticDialog, StaticDialogR, Style
 from .widgets.filelist import FileList
 from .widgets.panel import Panel
 
@@ -834,7 +834,16 @@ class F2Commander(App):
 
     @work
     async def action_quit(self):
-        if await self.push_screen_wait(StaticDialog("Quit?")):
+        if self.config.system.ask_before_quit:
+            confirmed, remember = await self.push_screen_wait(
+                StaticDialogR(title="Quit?", remember="Don't ask again")
+            )
+            if confirmed and remember:
+                with self.config.autosave() as config:
+                    config.system.ask_before_quit = False
+            if confirmed:
+                self.exit()
+        else:
             self.exit()
 
     @work

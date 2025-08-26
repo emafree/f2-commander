@@ -67,6 +67,7 @@ class Startup(pydantic.BaseModel):
 class System(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(validate_assignment=True)
 
+    ask_before_quit: bool = True
     editor: Optional[str] = None
     viewer: Optional[str] = None
     shell: Optional[str] = None
