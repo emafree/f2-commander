@@ -105,6 +105,14 @@ class ConfigDialog(ModalScreen):
         )
 
         yield Rule()
+        yield Label("Exit", classes="title")
+        yield SwitchWithLabel(
+            id="system_ask_before_quit",
+            title="Ask for confirmation before qitting",
+            value=self.app.config.system.ask_before_quit,
+        )
+
+        yield Rule()
         yield Label("Default programs", classes="title")
         yield InputWithLabel(
             id="system_editor",
@@ -148,6 +156,7 @@ class ConfigDialog(ModalScreen):
         config.startup.check_for_updates = self.query_one(
             "#startup_check_for_updates"
         ).value
+        config.system.ask_before_quit = self.query_one("#system_ask_before_quit").value
         config.system.editor = self.query_one("#system_editor").value or None
         config.system.viewer = self.query_one("#system_viewer").value or None
         config.system.shell = self.query_one("#system_shell").value or None
@@ -174,7 +183,7 @@ class ConfigDialog(ModalScreen):
         return errors == []
 
     @on(Button.Pressed, "#ok")
-    async def on_ok_pressed(self, event: Button.Pressed) -> None:
+    def on_ok_pressed(self, event: Button.Pressed) -> None:
         validation_copy = self.app.config.copy()
         self._update_from_ui(validation_copy)
         if not self._validate(validation_copy):
