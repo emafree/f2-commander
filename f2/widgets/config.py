@@ -35,44 +35,38 @@ class ConfigDialog(ModalScreen):
         Binding("q", "dismiss", show=False),
     ]
 
-    DEFAULT_CSS = """
-    ConfigDialog {
-        width: 80%;
-        border: $primary panel;
-    }
-    """
-
     def compose(self) -> ComposeResult:
-        yield Label("Configuration", classes="title")
-        with TabbedContent(classes="h-50"):
-            with TabPane("Display"):
-                with Vertical(classes="scrollable"):
-                    yield from self.compose_display_tab()
-            with TabPane("Bookmarks"):
-                with Vertical(classes="scrollable"):
-                    yield from self.compose_bookmarks_tab()
-            with TabPane("System"):
-                with Vertical(classes="scrollable"):
-                    yield from self.compose_system_tab()
-        with Horizontal(id="buttons", classes=""):
-            yield Button("OK", variant="primary", id="ok")
-            yield Button("Cancel", variant="default", id="cancel")
+        with Vertical(classes="dialog"):
+            yield Label("Configuration", classes="title")
+            with TabbedContent(classes="tabs"):
+                with TabPane("Display"):
+                    with Vertical(classes="scrollable"):
+                        yield from self.compose_display_tab()
+                with TabPane("Bookmarks"):
+                    with Vertical(classes="scrollable"):
+                        yield from self.compose_bookmarks_tab()
+                with TabPane("System"):
+                    with Vertical(classes="scrollable"):
+                        yield from self.compose_system_tab()
+            with Horizontal(classes="buttons"):
+                yield Button("OK", variant="primary", id="ok")
+                yield Button("Cancel", variant="default", id="cancel")
 
     def compose_display_tab(self) -> ComposeResult:
         yield Label("File listing", classes="title")
         yield SwitchWithLabel(
-            id="display_dirs_first",
             title="Show directories first (above files)",
+            value_id="display_dirs_first",
             value=self.app.config.display.dirs_first,
         )
         yield SwitchWithLabel(
-            id="display_order_case_sensitive",
             title="Case-sensetive order",
+            value_id="display_order_case_sensitive",
             value=self.app.config.display.order_case_sensitive,
         )
         yield SwitchWithLabel(
-            id="display_show_hidden",
             title="Show hidden files and directories",
+            value_id="display_show_hidden",
             value=self.app.config.display.show_hidden,
         )
 
@@ -88,48 +82,44 @@ class ConfigDialog(ModalScreen):
 
     def compose_bookmarks_tab(self) -> ComposeResult:
         yield Vertical(
-            Static("[dim]One directory path per line:", classes=""),
-            TextArea(
-                "\n".join(self.app.config.bookmarks.paths),
-                classes="h-50",
-            ),
-            classes="container",
+            Static("[dim]One directory path per line:", classes="subtitle"),
+            TextArea("\n".join(self.app.config.bookmarks.paths)),
         )
 
     def compose_system_tab(self) -> ComposeResult:
         yield Label("Startup", classes="title")
         yield SwitchWithLabel(
-            id="startup_check_for_updates",
             title="Check for updates on startup",
+            value_id="startup_check_for_updates",
             value=self.app.config.startup.check_for_updates,
         )
 
         yield Rule()
         yield Label("Exit", classes="title")
         yield SwitchWithLabel(
-            id="system_ask_before_quit",
             title="Ask for confirmation before qitting",
+            value_id="system_ask_before_quit",
             value=self.app.config.system.ask_before_quit,
         )
 
         yield Rule()
         yield Label("Default programs", classes="title")
         yield InputWithLabel(
-            id="system_editor",
             title="Editor:",
             placeholder=shell.default_editor(),
+            value_id="system_editor",
             value=self.app.config.system.editor,
         )
         yield InputWithLabel(
-            id="system_viewer",
             title="Viewer:",
             placeholder=shell.default_viewer(),
+            value_id="system_viewer",
             value=self.app.config.system.viewer,
         )
         yield InputWithLabel(
-            id="system_shell",
             title="Shell: ",
             placeholder=shell.default_shell(),
+            value_id="system_shell",
             value=self.app.config.system.shell,
         )
 
@@ -184,7 +174,7 @@ class ConfigDialog(ModalScreen):
 
     @on(Button.Pressed, "#ok")
     def on_ok_pressed(self, event: Button.Pressed) -> None:
-        validation_copy = self.app.config.copy()
+        validation_copy = self.app.config.copy(deep=True)
         self._update_from_ui(validation_copy)
         if not self._validate(validation_copy):
             return

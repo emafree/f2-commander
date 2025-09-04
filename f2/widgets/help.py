@@ -55,7 +55,6 @@ HELP = f"""
  - `n`/`N`: order the entries by name
  - `s`/`S`: order the entries by size
  - `t`/`T`: order the entries by last modification time
- - `f`: filter the displayed entries with a glob expression
  - `Ctrl+Space`: calculate the size of the directory under cursor
 
 ### File and directory manipulation
@@ -149,14 +148,11 @@ respectively.
 
 ### Options
 
-These toggles can be found in Command Palette:
-
- - Show directories first, on/off
- - Case-sensitive name ordering, on/off
+Open the configuraiton dialog from a Command Palette or with `Ctrl+,`.
 
 ### Themes (colors)
 
-To change the theme, run the "Change theme" command from the Command Palette.
+To change the theme, use the configuration dialog (same as above).
 
 Themes are built-in and are not customizable in this version of the application.
 
@@ -170,24 +166,6 @@ Or, use "Show the configuration directory" command from the Command Palette to
 navigate to it.
 
 Beware: the application may also write to the configuration file as you use it.
-
-### Bookmarks
-
-Bookmarks are defined under `bookmarks.paths` as a plain list of local paths:
-
-    "bookmarks": {{
-      "paths": [
-        "~",
-        "~/Documents",
-        "~/Downloads",
-        "~/Pictures",
-        "~/Videos",
-        "~/Music"
-      ]
-    }}
-
-By default, bookmarks are set to the typical desktop locations, similar to the
-example above.
 
 ### Remote file systems
 

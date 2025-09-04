@@ -143,19 +143,10 @@ class F2Commander(App):
             "ctrl+t",
         ),
         Command(
-            "toggle_dirs_first",
-            "Toggle directories first",
-            "Show directories first or ordered among files",
-        ),
-        Command(
-            "toggle_order_case_sensitive",
-            "Toggle case sensitive name order",
-            "Whether name ordering is case sensitive or not",
-        ),
-        Command(
             "configure",
             "Configuration",
             "Review and modify the app configuration options",
+            "ctrl+comma",
         ),
         Command(
             "check_for_updates",

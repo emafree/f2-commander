@@ -23,17 +23,17 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "textual>=3.2.0",
-    "humanize>=4.12.3",
-    "send2trash>=1.8.3",
-    "platformdirs>=4.3.8",
-    "python-dotenv>=1.1.0",
+    "textual>=3.2.0,<4",
+    "humanize>=4.12.3,<5",
+    "send2trash>=1.8.3,<2",
+    "platformdirs>=4.3.8,<5",
+    "python-dotenv>=1.1.0,<2",
     "fsspec>=2025.3.2",
-    "libarchive-c>=5.2",
-    "pydantic>=2.11.7",
-    "click>=8.1.8",
-    "textual-image[textual]>=0.8.3",
-    "pillow>=11.3.0",
+    "libarchive-c>=5.2,<6",
+    "pydantic>=2.11.7,<3",
+    "click>=8.1.8,<9",
+    "textual-image[textual]>=0.8.3,<1",
+    "pillow>=11.3.0,<12",
 ]
 
 [project.urls]

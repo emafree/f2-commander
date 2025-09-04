@@ -17,38 +17,41 @@ from textual.widgets import Input, Static, Switch
 
 
 class SwitchWithLabel(Static):
-    def __init__(self, id: str, title: str, value: bool):
+    def __init__(self, title: str, value_id: str, value: bool):
         super().__init__()
-        self.id = id
-        self.title = title
-        self.value = value
+        self._title = title
+        self._value_id = value_id
+        self._value = value
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
-            Switch(self.value, id=self.id),
-            Static(self.title, classes="inline-label"),
-            classes="container",
+            Switch(self._value, id=self._value_id),
+            Static(self._title, classes="inline-label"),
+            classes="form-control",
         )
 
 
 class InputWithLabel(Static):
     def __init__(
-        self, id: str, title: str, placeholder: Optional[str], value: Optional[str]
+        self,
+        title: str,
+        placeholder: Optional[str],
+        value_id: str,
+        value: Optional[str],
     ):
         super().__init__()
-        self.id = id
-        self.title = title
-        self.placeholder = placeholder
-        self.value = value
+        self._title = title
+        self._placeholder = placeholder
+        self._value_id = value_id
+        self._value = value
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
-            Static(self.title, classes="inline-label"),
+            Static(self._title, classes="inline-label"),
             Input(
-                placeholder=self.placeholder,
-                value=self.value,
-                id=self.id,
-                classes="w-auto",
+                placeholder=self._placeholder,
+                value=self._value,
+                id=self._value_id,
             ),
-            classes="container",
+            classes="form-control",
         )
