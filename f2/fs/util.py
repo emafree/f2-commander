@@ -171,6 +171,11 @@ def is_image_file(path: str) -> bool:
     return ext.lower() in IMG_EXTENSIONS
 
 
+def is_pdf_file(path: str) -> bool:
+    _, ext = posixpath.splitext(path)
+    return ext.lower() == ".pdf"
+
+
 def breadth_first_walk(
     fs: AbstractFileSystem, path: str, include_hidden: bool = True
 ) -> Iterator[str]:

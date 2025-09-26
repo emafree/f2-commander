@@ -34,6 +34,7 @@ dependencies = [
     "click>=8.1.8,<9",
     "textual-image[textual]>=0.8.3,<1",
     "pillow>=11.3.0,<12",
+    "pymupdf>=1.26.4",
 ]
 
 [project.urls]

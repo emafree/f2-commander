@@ -4,32 +4,51 @@
 #
 # Copyright (c) 2024 Timur Rubeko
 
+import io
 import posixpath
 import shutil
-from typing import Union
+from typing import Optional, Tuple, Union
 
+import pymupdf
 from fsspec import filesystem
 from PIL import Image as PillowImage
 from rich.syntax import Syntax
 from textual import work
 from textual.app import ComposeResult
+from textual.containers import Horizontal
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
 from textual_image.widget import Image as TextualImage
 
 from f2.fs.node import Node
-from f2.fs.util import breadth_first_walk, is_image_file, is_text_file, shorten
+from f2.fs.util import (
+    breadth_first_walk,
+    is_image_file,
+    is_pdf_file,
+    is_text_file,
+    shorten,
+)
 
 
 class Preview(Static):
     DEFAULT_CSS = """
-    .image-size-auto {
-        width: auto;
-        height: auto;
+    #preview-container {
         align: center middle;
     }
+
+    #image-preview {
+        width: auto;
+        height: auto;
+        padding: 1;
+    }
+
+    #text-preview {
+        width: 100%;
+        height: 100%;
+    }
     """
+    # FIXME: use "real" image size, only dezoom when need to fit
 
     node = reactive(Node.cwd())
 
@@ -39,8 +58,9 @@ class Preview(Static):
         self._fs = filesystem("file")
 
     def compose(self) -> ComposeResult:
-        yield TextualImage(None, id="image-preview", classes="image-size-auto")
-        yield Static("", id="text-preview")
+        with Horizontal(id="preview-container"):
+            yield TextualImage(None, id="image-preview")
+            yield Static("", id="text-preview")
 
     def on_mount(self):
         self.node = self.app.active_filelist.cursor_node
@@ -61,42 +81,61 @@ class Preview(Static):
         )
         parent.border_subtitle = None
 
-        # set a placeholder:
-        image_preview.loading = True
-        text_preview.loading = True
-
         # update content:
-        self._preview_content = self._format(self.node)
-        text, image = (
-            ("", self._preview_content)
-            if isinstance(self._preview_content, PillowImage.Image)
-            else (self._preview_content, None)
-        )
-        image_preview.image = image
-        text_preview.update(text)
-        image_preview.loading = False
-        text_preview.loading = False
+        text, image = await self._format(self.node)
+        self._preview_content = text if text is not None else image
 
-    def _format(self, node: Node) -> Union[str, Syntax, PillowImage]:
+        if text is not None:
+            text_preview.update(text)
+            text_preview.remove_class("hidden")
+        else:
+            text_preview.update("")
+            text_preview.add_class("hidden")
+
+        if image is not None:
+            image_preview.image = image
+            image_preview.remove_class("hidden")
+        else:
+            image_preview.image = None
+            image_preview.add_class("hidden")
+
+    async def _format(
+        self, node: Node
+    ) -> Tuple[Union[None, str, Syntax], Optional[PillowImage]]:
         if node is None:
-            return ""
+            return None, None
+
         elif node.is_dir:
-            return self._dir_tree(node)
+            return self._dir_tree(node), None
+
         elif node.is_file and is_text_file(node.path):
             try:
-                return Syntax(
-                    code=self._head(node), lexer=Syntax.guess_lexer(node.path)
+                return (
+                    Syntax(code=self._head(node), lexer=Syntax.guess_lexer(node.path)),
+                    None,
                 )
             except UnicodeDecodeError:
-                return "Cannot preview: text file cannot be read"
+                return "Cannot preview: text file cannot be read", None
+
         elif node.is_file and is_image_file(node.path):
             try:
-                return PillowImage.open(self.node.path)
+                return None, PillowImage.open(self.node.path)
             except OSError:
-                return "Cannot preview: image file cannot be read"
+                return "Cannot preview: image file cannot be read", None
+
+        elif node.is_file and is_pdf_file(node.path):
+            try:
+                doc = pymupdf.open(node.path)
+                page = doc[0]
+                pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))  # zoom for quality
+                img_data = pix.tobytes("png")
+                return None, PillowImage.open(io.BytesIO(img_data))
+            except Exception:
+                return "Cannot preview: PDF file cannot be read", None
+
         else:
             # TODO: leave a user a possibility to force the preview?
-            return "Cannot preview: not a text or an image file"
+            return "Cannot preview: not a text or an image file", None
 
     @property
     def _height(self):

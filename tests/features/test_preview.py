@@ -124,20 +124,28 @@ async def test_preview_image_file(sample_fs):
         assert isinstance(content, PillowImage.Image)
 
 
-async def test_preview_binary_file(sample_fs):
-    (sample_fs / "fake.pdf").write_bytes(b"%PDF-")
-    async with run_test(cwd=sample_fs) as (pilot, f2pilot):
-        await f2pilot.select("fake.pdf")
-        preview = await open_preview(pilot)
-        assert preview._preview_content == "Cannot preview: not a text or an image file"
-
-
 async def test_preview_broken_image_file(sample_fs):
     (sample_fs / "fake.gif").write_bytes(b"GIF87a BROKEN")
     async with run_test(cwd=sample_fs) as (pilot, f2pilot):
         await f2pilot.select("fake.gif")
         preview = await open_preview(pilot)
         assert preview._preview_content == "Cannot preview: image file cannot be read"
+
+
+async def test_preview_broken_pdf_file(sample_fs):
+    (sample_fs / "fake.pdf").write_bytes(b"%PDF-")
+    async with run_test(cwd=sample_fs) as (pilot, f2pilot):
+        await f2pilot.select("fake.pdf")
+        preview = await open_preview(pilot)
+        assert preview._preview_content == "Cannot preview: PDF file cannot be read"
+
+
+async def test_preview_binary_file(sample_fs):
+    (sample_fs / "fake.wav").write_bytes(b"RIFF????WAVE")
+    async with run_test(cwd=sample_fs) as (pilot, f2pilot):
+        await f2pilot.select("fake.wav")
+        preview = await open_preview(pilot)
+        assert preview._preview_content == "Cannot preview: not a text or an image file"
 
 
 async def test_preview_dir(sample_fs):
