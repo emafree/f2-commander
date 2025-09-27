@@ -489,8 +489,16 @@ class F2Commander(App):
             if not await self._confirm_download_upload():
                 return
 
+        overwrite = None
         for src in sources:
-            await self._copy_one(src.fs, src.path, dst.fs, new_dst_path)
+            overwrite = await self._copy_one(
+                src.fs,
+                src.path,
+                dst.fs,
+                new_dst_path,
+                many=len(sources) > 1,
+                overwrite=overwrite,
+            )
 
         self.active_filelist.reset_selection()
         self.active_filelist.update_listing()
@@ -510,27 +518,60 @@ class F2Commander(App):
             )
         )
 
-    async def _copy_one(self, src_fs, src: str, dst_fs, dst: str):
+    async def _copy_one(
+        self,
+        src_fs,
+        src: str,
+        dst_fs,
+        dst: str,
+        many: bool,
+        overwrite: Optional[bool],
+    ) -> Optional[bool]:
         dst_final_path = copy_final_path(src, dst_fs, dst)
-        conflict_msg, title, btn_ok = None, "", ""
+        conflict, conflict_msg, title, btn_ok = False, "", "", ""
         if src_fs.isfile(src) and dst_fs.isfile(dst_final_path):
+            conflict = True
             conflict_msg = f"{dst_final_path} already exists. Overwrite?"
             title = "Overwrite?"
             btn_ok = "Overwrite"
         elif src_fs.isdir(src) and dst_fs.isdir(dst_final_path):
+            conflict = True
             conflict_msg = (
                 f"{dst_final_path} already exists.\n"
                 "Merge directories and overwrite existing files?"
             )
             title = "Merge and overwrite?"
             btn_ok = "Merge"
-        if conflict_msg and not await self.push_screen_wait(
-            StaticDialog(title, conflict_msg, btn_ok, style=Style.WARNING)
-        ):
-            return
 
-        async with error_handler_async(self):
-            copy(src_fs, src, dst_fs, dst)
+        # "unpack" previous overwrite choice, if any:
+        overwrite_one = overwrite if overwrite is not None else False
+        overwrite_mem = overwrite is not None
+
+        # unless user already chose to overwrite, ask every time:
+        if conflict and not overwrite_mem:
+            # only proopse to remember if there are many copies to perform
+            if many:
+                overwrite_one, overwrite_mem = await self.push_screen_wait(
+                    StaticDialogR(
+                        title=title,
+                        message=conflict_msg,
+                        btn_ok=btn_ok,
+                        btn_cancel="Skip",
+                        style=Style.WARNING,
+                        remember="Do the same with other conflicts",
+                    )
+                )
+            else:
+                overwrite_one = await self.push_screen_wait(
+                    StaticDialog(title, conflict_msg, btn_ok, style=Style.WARNING)
+                )
+                overwrite_mem = False
+
+        if not conflict or conflict and overwrite_one:
+            async with error_handler_async(self):
+                copy(src_fs, src, dst_fs, dst)
+
+        return overwrite_one if overwrite_mem else None
 
     @work
     async def action_move(self):
@@ -556,50 +597,88 @@ class F2Commander(App):
             if not await self._confirm_download_upload():
                 return
 
+        overwrite = None
         for src in sources:
-            await self._move_one(src.fs, src.path, dst.fs, new_dst_path)
+            overwrite = await self._move_one(
+                src.fs,
+                src.path,
+                dst.fs,
+                new_dst_path,
+                many=len(sources) > 1,
+                overwrite=overwrite,
+            )
 
         self.active_filelist.reset_selection()
         self.active_filelist.update_listing()
         self.inactive_filelist.update_listing()
 
-    async def _move_one(self, src_fs, src: str, dst_fs, dst: str):
+    async def _move_one(
+        self,
+        src_fs,
+        src: str,
+        dst_fs,
+        dst: str,
+        many: bool,
+        overwrite: Optional[bool],
+    ) -> Optional[bool]:
         dst_final_path = copy_final_path(src, dst_fs, dst)
-        if src_fs.isfile(src) and dst_fs.isfile(dst_final_path):
-            msg = f"{dst_final_path} already exists. Overwrite?"
-            if not await self.push_screen_wait(
-                StaticDialog(
-                    title="Overwrite?",
-                    message=msg,
-                    btn_ok="Overwrite",
-                    style=Style.WARNING,
-                )
-            ):
-                return
-            else:
-                # IMPORTANT: overriding dst with the exact target **file** path
-                # if not done, eventually shutil.move raises an error
-                # (try shutil.move('a', 'b') where 'b' is a dir with a file 'a')
-                dst = dst_final_path
 
-        elif src_fs.isdir(src) and dst_fs.isdir(dst_final_path):
+        if src_fs.isdir(src) and dst_fs.isdir(dst_final_path):
             # Move has no merge for directories intentionally.
             # It is considered way too ambiguous and, if necessary,
             # can be achieved otherwise (copy, then delete).
-            msg = f"{dst_final_path} already exists."
             await self.push_screen_wait(
                 StaticDialog(
                     title="Destination exists",
-                    message=msg,
+                    message=f"{dst_final_path} already exists.",
                     btn_ok=None,
-                    btn_cancel="Cancel",
+                    btn_cancel="Skip" if many else "Cancel",
                     style=Style.WARNING,
                 )
             )
-            return
+            return overwrite  # no change
 
-        async with error_handler_async(self):
-            return move(src_fs, src, dst_fs, dst)
+        # "unpack" previous overwrite choice, if any:
+        conflict = False
+        overwrite_one = overwrite if overwrite is not None else False
+        overwrite_mem = overwrite is not None
+
+        if src_fs.isfile(src) and dst_fs.isfile(dst_final_path):
+            # IMPORTANT: overriding dst with the exact target **file** path
+            # if not done, eventually shutil.move raises an error
+            # (try shutil.move('a', 'b') where 'b' is a dir with a file 'a')
+            dst = dst_final_path
+            conflict = True
+
+        if conflict and not overwrite_mem:
+            msg = f"{dst_final_path} already exists. Overwrite?"
+            if many:
+                overwrite_one, overwrite_mem = await self.push_screen_wait(
+                    StaticDialogR(
+                        title="Overwrite?",
+                        message=msg,
+                        btn_ok="Overwrite",
+                        btn_cancel="Skip",
+                        style=Style.WARNING,
+                        remember="Do the same with other conflicts",
+                    )
+                )
+            else:
+                overwrite_one = await self.push_screen_wait(
+                    StaticDialog(
+                        title="Overwrite?",
+                        message=msg,
+                        btn_ok="Overwrite",
+                        style=Style.WARNING,
+                    )
+                )
+                overwrite_mem = False
+
+        if not conflict or conflict and overwrite_one:
+            async with error_handler_async(self):
+                move(src_fs, src, dst_fs, dst)
+
+        return overwrite_one if overwrite_mem else None
 
     @work
     async def action_rename(self):

@@ -190,7 +190,11 @@ class FileList(Static):
     @property
     def selection(self) -> list[Node]:
         if len(self._selection) > 0:
-            return list(self._selection)
+            nodes = list([TextAndValue(node, node.name) for node in self._selection])
+            ordered = sorted(nodes, key=self.sort_key)
+            if self.sort_options.reverse:
+                ordered = reversed(ordered)  # type: ignore
+            return [c.value for c in ordered]
         elif self.cursor_node != self.node.parent:
             return [self.cursor_node]
         else:
