@@ -5,6 +5,7 @@
 # Copyright (c) 2024 Timur Rubeko
 
 import io
+import math
 import posixpath
 import shutil
 from typing import Optional, Tuple, Union
@@ -19,6 +20,7 @@ from textual.containers import Horizontal
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
+from textual_image._terminal import get_cell_size
 from textual_image.widget import Image as TextualImage
 
 from f2.fs.node import Node
@@ -38,8 +40,6 @@ class Preview(Static):
     }
 
     #image-preview {
-        width: auto;
-        height: auto;
         padding: 1;
     }
 
@@ -93,11 +93,33 @@ class Preview(Static):
             text_preview.add_class("hidden")
 
         if image is not None:
-            image_preview.image = image
+            self.set_preview_image(image_preview, image)
             image_preview.remove_class("hidden")
         else:
-            image_preview.image = None
+            self.unset_preview_image(image_preview)
             image_preview.add_class("hidden")
+
+    def set_preview_image(self, image_preview, image):
+        image_preview.image = image
+        cell_size = get_cell_size()
+        width = math.floor(image.width / cell_size.width)
+        height = math.floor(image.height / cell_size.height)
+        container = self.content_size
+        if width > container.width:
+            image_preview.styles.width = container.width
+            image_preview.styles.height = "auto"
+        elif height > container.height:
+            image_preview.styles.width = "auto"
+            image_preview.styles.height = container.height
+        else:
+            image_preview.styles.width = width
+            image_preview.styles.height = height
+
+    def unset_preview_image(self, image_preview):
+        image_preview.image = None
+        image_preview.styles.width = "auto"
+        image_preview.styles.height = "auto"
+        image_preview.add_class("hidden")
 
     async def _format(
         self, node: Node
