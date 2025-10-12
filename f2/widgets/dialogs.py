@@ -6,7 +6,7 @@
 
 import re
 from enum import Enum
-from typing import Optional, Tuple, Union, override
+from typing import Optional, Tuple, Union
 
 from rich.markup import escape as rich_escape
 from rich.text import Text
@@ -121,16 +121,13 @@ class StaticDialogR(StaticDialog, ModalScreen[Tuple[bool, bool]]):
         super().__init__(*args, **kwargs)
         self.remember = remember
 
-    @override
     def _compose_aux(self) -> ComposeResult:
         yield Horizontal(Checkbox(value=False, id="remember", label=self.remember))
 
-    @override
     def on_mount(self) -> None:
         super().on_mount()
         self.query_one("#remember").can_focus = False
 
-    @override
     def dismiss(self, value: Optional[Union[bool, Tuple[bool, bool]]]) -> None:
         remember_value = self.query_one("#remember", Checkbox).value
         super().dismiss((value, remember_value))
