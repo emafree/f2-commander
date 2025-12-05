@@ -9,9 +9,10 @@ from pathlib import Path
 
 import click
 
-from .app import F2Commander
+from .app import F2CommanderMeta
 from .config import ConfigError, migrate_legacy_config, user_config, user_config_path
 from .errors import log_dir, log_uncaught_error
+from .keymap import BINDINGS_FN, BINDINGS_VI
 
 
 @click.command()
@@ -32,7 +33,12 @@ def main(config_path, debug):
     try:
         migrate_legacy_config()
         config = user_config(config_path)
-        app = F2Commander(config=config, debug=debug)
+        app_type = F2CommanderMeta(
+            "F2Commander",
+            (),
+            {"_BINDINGS": BINDINGS_VI if config.keymap == "vi" else BINDINGS_FN},
+        )
+        app = app_type(config=config, debug=debug)
         app.run()
     except ConfigError as err:
         click.echo("Application could not start because of malformed configuration:")

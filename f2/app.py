@@ -81,6 +81,20 @@ class F2AppCommands(Provider):
             )
 
 
+class F2CommanderMeta(type):
+    def __new__(metacls, clsname, bases, attrs):
+        bases += (F2Commander,)
+        attrs["__module__"] = F2Commander.__module__
+        attrs["__qualname__"] = F2Commander.__qualname__
+        attrs["BINDINGS"] = attrs["_BINDINGS"] + [
+            Binding(cmd.binding_key, cmd.action, cmd.description, show=False)
+            for cmd in F2Commander.BINDINGS_AND_COMMANDS
+            if cmd.binding_key is not None
+        ]
+        del attrs["_BINDINGS"]
+        return type(clsname, bases, attrs)
+
+
 class F2Commander(App):
     CSS_PATH = "tcss/main.tcss"
     BINDINGS_AND_COMMANDS = [
@@ -159,22 +173,6 @@ class F2Commander(App):
             "Information about this software",
         ),
     ]
-    BINDINGS = [
-        Binding("?", "help", "Help"),
-        Binding("b", "go_to_bookmark", "Bookmarks"),
-        Binding("v", "view", "View"),
-        Binding("e", "edit", "Edit"),
-        Binding("c", "copy", "Copy"),
-        Binding("m", "move", "Move"),
-        Binding("D", "delete", "Delete"),
-        Binding("ctrl+n", "mkdir", "MkDir"),
-        Binding("x", "shell", "Shell"),
-        Binding("q", "quit", "Quit"),
-    ] + [
-        Binding(cmd.binding_key, cmd.action, cmd.description, show=False)
-        for cmd in BINDINGS_AND_COMMANDS
-        if cmd.binding_key is not None
-    ]  # type: ignore
     COMMANDS = {F2AppCommands}
 
     show_hidden = reactive(False, init=False)

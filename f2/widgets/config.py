@@ -53,6 +53,16 @@ class ConfigDialog(ModalScreen):
                 yield Button("Cancel", variant="default", id="cancel")
 
     def compose_display_tab(self) -> ComposeResult:
+        yield Label("Keyboard mappings (restart to apply changes)", classes="title")
+        yield Select(
+            options=[("Vim-like mnemonics", "vi"), ("Classic Fn keys", "fn")],
+            value=self.app.config.keymap,
+            allow_blank=False,
+            id="display_keymap",
+            classes="",
+        )
+
+        yield Rule()
         yield Label("File listing", classes="title")
         yield SwitchWithLabel(
             title="Show directories first (above files)",
@@ -131,6 +141,7 @@ class ConfigDialog(ModalScreen):
         self.app.theme = event.value
 
     def _update_from_ui(self, config: Config) -> None:
+        config.keymap = self.query_one("#display_keymap").value
         config.display.dirs_first = self.query_one("#display_dirs_first").value
         config.display.order_case_sensitive = self.query_one(
             "#display_order_case_sensitive"

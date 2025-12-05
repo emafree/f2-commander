@@ -7,7 +7,7 @@
 import ast
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import dotenv
 import platformdirs
@@ -76,6 +76,7 @@ class System(pydantic.BaseModel):
 class Config(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(validate_assignment=True)
 
+    keymap: Literal["vi", "fn"] = "vi"
     display: Display = Display()
     bookmarks: Bookmarks = Bookmarks()
     file_systems: list[FileSystem] = [
