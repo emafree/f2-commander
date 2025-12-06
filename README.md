@@ -17,7 +17,7 @@ or:
 From source:
 
     uv build
-    pipx install [--force] dist/f2_commander-0.6.1.tar.gz
+    pipx install [--force] dist/f2_commander-0.8.0.tar.gz
 
 This software is designed to work in Linux and macOS. It should also work in
 WSL (Windows Subsystem for Linux).
@@ -45,10 +45,9 @@ provided "as is", without warranty of any kind.
 ## Features
 
  - [x] Works in Linux, macOS
- - [ ] Works in WSL (should work, but to be extensively tested)
+ - [ ] Windows support (via WSL; should work, but to be extensively tested)
  - [x] An orthodox two-panel interface with a footer menu
- - [x] Vi-like key bindings
- - [ ] Classic Fn key bindings, and configurable key bindings
+ - [x] Vi-like and traditional Fn key bindings
  - [x] Command Palette (Ctrl-P)
  - [x] Rich and flexible file listing (file attributes, ordering options,
        filtering with glob, hidden files toggle, compute directory size,
@@ -115,7 +114,22 @@ To run the application with dev tools:
 
 To run tests in all target Python versions (typically before a release):
 
-    uvx nox [-r]  # -r == --reuse-existing-virtualenvs
+    ./mox
+
+To run the latter, you need to have locally installed Python interpreters to test
+with. See the `mox` implementation for a list of Python versions. Match it with
+currenly supported Python versions, and update `pyproject.toml` classifiers.
+`mox` is short for "my nox"; this project no longer uses nox because installing
+envs with uv is so fast I don't see the point in nox anymore.
+
+### Release process
+
+1. Update dependencies and target Python versions (target all suppported ones).
+2. Run all tests: `./mox`.
+3. Update version in the `pyproject.toml`
+4. Build: `uv build`
+5. Test the pacakge: `pipx install --force dist/*.whl` and run it
+6. Publish: `uv publish`
 
 ## About (continued)
 

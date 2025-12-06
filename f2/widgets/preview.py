@@ -123,7 +123,7 @@ class Preview(Static):
 
     async def _format(
         self, node: Node
-    ) -> Tuple[Union[None, str, Syntax], Optional[PillowImage]]:
+    ) -> Tuple[Union[None, str, Syntax], Optional[PillowImage.Image]]:
         if node is None:
             return None, None
 

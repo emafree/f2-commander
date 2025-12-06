@@ -12,6 +12,6 @@ from ..f2pilot import run_test
 async def test_help_opens_from_shortcut(app, sample_fs):
     async with run_test(app=app, cwd=sample_fs) as (pilot, f2pilot):
         await pilot.press("?")
-        assert app.right.parent.border_title == "Help"
-        await pilot.press("tab", "q")
-        assert app.right.parent.border_title != "Help"
+        assert app.left.parent.border_title == "Help"
+        await pilot.press("q")
+        assert app.left.parent.border_title != "Help"

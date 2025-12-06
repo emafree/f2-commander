@@ -4,12 +4,10 @@
 #
 # Copyright (c) 2025 Timur Rubeko
 
-import ast
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-import dotenv
 import platformdirs
 import pydantic
 

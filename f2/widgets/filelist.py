@@ -23,7 +23,6 @@ from textual.widgets import DataTable, Input, Static
 from textual.widgets.data_table import RowDoesNotExist
 
 from f2.commands import Command
-from f2.config import config_root
 from f2.fs.node import Node
 from f2.fs.util import shorten
 from f2.shell import native_open

@@ -15,9 +15,10 @@ from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Optional
 
-from f2.app import F2Commander
+from f2.app import F2CommanderMeta
 from f2.config import Config
 from f2.fs.node import Node
+from f2.keymap import BINDINGS_VI
 
 THEME = "textual-dark"
 RED = "#ba3c5b"
@@ -96,12 +97,16 @@ def create_sample_fs():
 
 def create_app():
     config = SampleConfig()
+    config.keymap = "vi"
     config.display.theme = THEME
     config.display.order_case_sensitive = False
     config.display.dirs_first = False
     config.display.show_hidden = False
     config.startup.license_accepted = True
-    return F2Commander(config)
+
+    app_type = F2CommanderMeta("F2Commander", (), {"_BINDINGS": BINDINGS_VI})
+    app = app_type(config=config, debug=False)
+    return app
 
 
 @asynccontextmanager
