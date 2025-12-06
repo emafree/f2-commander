@@ -159,7 +159,7 @@ class F2Commander(App):
         Command(
             "configure",
             "Configuration",
-            "Review and modify the app configuration options",
+            "Review and modify the app settings",
             "ctrl+comma",
         ),
         Command(
@@ -972,7 +972,7 @@ class F2Commander(App):
             conf.startup.license_accepted = True
 
     def action_help(self):
-        self.panel_right.panel_type = "help"
+        self.panel_left.panel_type = "help"
 
     def check_action(self, action, parameters):
         if self.active_filelist and self.active_filelist.node.is_archive:

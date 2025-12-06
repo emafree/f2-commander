@@ -102,11 +102,6 @@ class FileList(Static):
             "Calculate the size of the directory tree",
             "ctrl+@",  # this is `ctrl+space`
         ),
-        Command(
-            "navigate_to_config",
-            "Show the configuration directory",
-            "Open the user's configuration directory in the file list",
-        ),
     ]
     BINDINGS = [  # type: ignore
         Binding("j", "cursor_down", show=False),
@@ -533,9 +528,6 @@ class FileList(Static):
         if open_cmd is not None:
             self.app.subprocess_run(open_cmd, self.node.path)
             self.app.refresh()
-
-    def action_navigate_to_config(self):
-        self.node = Node.from_url(config_root().as_uri())
 
     @work
     async def action_calc_dir_size(self):

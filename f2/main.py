@@ -10,9 +10,10 @@ from pathlib import Path
 import click
 
 from .app import F2CommanderMeta
-from .config import ConfigError, migrate_legacy_config, user_config, user_config_path
+from .config import ConfigError, user_config, user_config_path
 from .errors import log_dir, log_uncaught_error
 from .keymap import BINDINGS_FN, BINDINGS_VI
+from .update import current_version
 
 
 @click.command()
@@ -29,9 +30,17 @@ from .keymap import BINDINGS_FN, BINDINGS_VI
     is_flag=True,
     help=f"Enable local file logging [logs directory: {log_dir()}]",
 )
-def main(config_path, debug):
+@click.option(
+    "--version",
+    is_flag=True,
+    help="Print the application version and exit",
+)
+def main(config_path, debug, version):
+    if version:
+        click.echo(current_version())
+        sys.exit(0)
+
     try:
-        migrate_legacy_config()
         config = user_config(config_path)
         app_type = F2CommanderMeta(
             "F2Commander",
