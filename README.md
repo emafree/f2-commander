@@ -4,6 +4,8 @@ F2 Commander is an orthodox file manager for the modern world.
 
 ![F2 Commander Showcase](f2.png "F2 Commander Screenshot")
 
+[More screenshots here](https://candidtim.github.io/f2-commander/)
+
 ## Installation
 
 From PyPI:
